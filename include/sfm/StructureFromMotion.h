@@ -5,6 +5,8 @@
 #ifndef SFM_3D_RECONSTRUCTION_STRUCTUREFROMMOTION_H
 #define SFM_3D_RECONSTRUCTION_STRUCTUREFROMMOTION_H
 
+#include "../../src/CommonUtilities.h"
+#include "../../src/StereoUtilities.h"
 
 class StructureFromMotion {
 
