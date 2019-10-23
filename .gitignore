@@ -1,6 +1,6 @@
 # my stuff
 build
-
+cmake-build-debug
 # Cmake stuff
 MakeCache.txt
 CMakeFiles
