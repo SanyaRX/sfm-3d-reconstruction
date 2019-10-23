@@ -1,0 +1,14 @@
+//
+// Created by Lenovo on 23.10.2019.
+//
+
+#ifndef SFM_3D_RECONSTRUCTION_COMMONUTILITIES_H
+#define SFM_3D_RECONSTRUCTION_COMMONUTILITIES_H
+
+
+class CommonUtilities {
+
+};
+
+
+#endif //SFM_3D_RECONSTRUCTION_COMMONUTILITIES_H

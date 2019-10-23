@@ -1,0 +1,14 @@
+//
+// Created by Lenovo on 23.10.2019.
+//
+
+#ifndef SFM_3D_RECONSTRUCTION_STEREOUTILITIES_H
+#define SFM_3D_RECONSTRUCTION_STEREOUTILITIES_H
+
+
+class StereoUtilities {
+
+};
+
+
+#endif //SFM_3D_RECONSTRUCTION_STEREOUTILITIES_H
