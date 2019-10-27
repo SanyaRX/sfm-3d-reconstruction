@@ -20,6 +20,7 @@ typedef std::vector<cv::Point2f> Points2D;
 
 typedef struct {
     KeyPoints key_points;
+    Points2D points2D;
     cv::Mat descriptor;
 } Features;
 
@@ -28,6 +29,12 @@ typedef struct {
     Points2D l_img_points;
     Points2D  r_img_points;
 } ImageMatch;
+
+typedef struct {
+    cv::Point3f pt;
+    std::vector<unsigned int> images; // images that show the point
+} Point3D;
+typedef std::vector<Point3D> PointCloud;
 
 class CommonUtilities {
 

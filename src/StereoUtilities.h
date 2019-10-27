@@ -9,17 +9,17 @@
 
 class StereoUtilities {
     constexpr const static float THRES_RATIO = 0.7f;
-    constexpr const static unsigned int MAX_FEATURES = 600;
+    constexpr const static unsigned int MAX_FEATURES = 800;
 
 public:
 
     /**
-     * Detects key points in image
+     * Detects image features
      * @param image - image to work with
      * @param output_features - image features for output
      */
-    static void detectKeyPoints(cv::Mat image,
-                                Features &output_features);
+    static void detectFeatures(cv::Mat image,
+                               Features &output_features);
 
     /**
      * Detects feature matches between two images
@@ -32,9 +32,9 @@ public:
                               Matches &output_matches);
 
     /**
-     * Gets matched key points on right and left images.
-     * @param left_key_points - left image features
-     * @param right_key_points - right image features
+     * Gets matched features on right and left images.
+     * @param left_key_features- left image features
+     * @param right_keyfeatures - right image features
      * @param matches - key points matches
      * @param left_points - output array for matched features on the left image
      * @param right_points - output array for matched features on the right image
@@ -44,6 +44,14 @@ public:
                                const Matches &matches,
                                Features &output_left_features,
                                Features &output_right_features);
+
+    /**
+     * Decreases 3x3 matrix's rank from 3 to 2
+     * @param matrix - matrix
+     * @param output_matrix - output matrix with decreased rank
+     * @return whether operation has been successful
+     */
+    static bool decreaseMatrixRank3x3(const cv::Mat &matrix, cv::Mat &output_matrix);
 };
 
 
