@@ -17,24 +17,29 @@ typedef std::vector<cv::KeyPoint> KeyPoints;
 typedef std::vector<cv::Mat> Descriptors;
 typedef std::vector<cv::DMatch> Matches;
 typedef std::vector<cv::Point2f> Points2D;
-
-typedef struct {
+typedef std::vector<cv::Point3f> Points3D;
+typedef struct FEATURES {
     KeyPoints key_points;
     Points2D points2D;
     cv::Mat descriptor;
 } Features;
 
-typedef struct {
+typedef struct IMAGE_MATCH {
     Matches matches;
     Points2D l_img_points;
     Points2D  r_img_points;
 } ImageMatch;
 
-typedef struct {
+typedef struct POINT3D{
     cv::Point3f pt;
     std::vector<unsigned int> images; // images that show the point
 } Point3D;
 typedef std::vector<Point3D> PointCloud;
+
+typedef struct POINT_PROJECTION {
+    cv::Point3f pt;
+    int proj_idx;
+} PointProjection;
 
 class CommonUtilities {
 

@@ -14,6 +14,7 @@ class StructureFromMotion {
     std::vector<Features> images_features;
     std::vector<Matches> images_matches;
     std::vector<cv::Matx34f> proj_matrices;
+    std::vector<std::vector<PointProjection>> points_track;
     PointCloud point_cloud;
     /**
      * Detects features of all the images
@@ -32,6 +33,28 @@ class StructureFromMotion {
      * @return whether the operation has been successful
      */
     bool firstTwoViewsTriangulation();
+
+    /**
+     * Processes the remaining views.
+     * @return whether the operation has been successful
+     */
+    bool addNewViews();
+
+    /**
+     * Merges new point cloud with existing
+     * @param pleft - left image projection matrix
+     * @param pright - right image projection matrix
+     * @param points3D - new reconstructed points
+     * @param left_points - real points3D projections on the left image
+     * @param right_points - real points3D projections on the right image
+     * @param matches - matches between left_points and right_points
+     * @param left_image_track - output array of track points for the left image
+     * @param right_image_track - output array of track points for the right image
+     */
+    void addPointsToPointCloud(const cv::Matx34f &pleft, const cv::Matx34f &pright, const cv::Mat &points3D,
+            const Points2D &left_points, const Points2D &right_points, const Matches &matches,
+            std::vector<PointProjection> &left_image_track, std::vector<PointProjection> &right_image_track);
+
 public:
     /**
      * Constructor that load images of an object from directory
@@ -53,6 +76,12 @@ public:
      * Runs Structure From Motion algorithm
      */
     void run();
+
+    /**
+     * Saves point cloud to txt file in X Y Z format
+     * @param file_path - path to save file
+     */
+    void savePointCloudXYZ(std::string file_path);
 };
 
 

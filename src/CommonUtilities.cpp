@@ -3,7 +3,7 @@
 //
 
 #include "CommonUtilities.h"
-
+#include <iostream>
 std::vector<cv::Mat> CommonUtilities::loadImages(const std::string &directory_path,
                                        const std::string &list_file_name,
                                        float resize_scale)
@@ -17,6 +17,7 @@ std::vector<cv::Mat> CommonUtilities::loadImages(const std::string &directory_pa
         cv::Mat image = cv::imread(directory_path + "\\" + image_name);
         if (resize_scale > 0 && resize_scale < 1)
             cv::resize(image, image, cv::Size(), resize_scale, resize_scale);
+
         images.push_back(image);
     }
 

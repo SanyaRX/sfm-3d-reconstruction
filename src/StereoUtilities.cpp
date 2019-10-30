@@ -61,8 +61,49 @@ bool StereoUtilities::decreaseMatrixRank3x3(const cv::Mat &matrix, cv::Mat &outp
     output_matrix.reshape(3, 3);
     output_matrix.convertTo(output_matrix, CV_32F);
 
+    w.row(0).setTo(1);
+    w.row(1).setTo(1);
     w.row(2).setTo(0);
 
     output_matrix = (u * cv::Mat::diag(w)) * vt;
     return true;
+}
+
+void StereoUtilities::getProjectionMatrixFromRt(const cv::Mat &R, const cv::Mat &t, cv::Matx34f &output_matrix)
+{
+    output_matrix = cv::Matx34f(R.at<double>(0,0), R.at<double>(0,1), R.at<double>(0,2), t.at<double>(0),
+                R.at<double>(1,0), R.at<double>(1,1), R.at<double>(1,2), t.at<double>(1),
+                R.at<double>(2,0), R.at<double>(2,1), R.at<double>(2,2), t.at<double>(2));
+}
+
+
+int StereoUtilities::isPointReconstructed(const std::vector<PointProjection> &reconstructed_points, int idx)
+{
+    if (reconstructed_points.empty())
+        return -1;
+
+    if (idx < 0)
+        return -1;
+
+    for (int i = 0; i < reconstructed_points.size(); i++)
+    {
+        if(idx == reconstructed_points[i].proj_idx)
+            return i;
+    }
+
+    return -1;
+}
+
+void StereoUtilities::triangulatePoints(const cv::Matx34f &pleft, const cv::Matx34f &pright,
+                                        const Points2D &left_points, const Points2D &right_points,
+                                        const cv::Mat &camera_parameters, cv::Mat &output_points)
+{
+    Points2D undistort_left, undistort_right;
+    cv::undistortPoints(left_points, undistort_left, camera_parameters, cv::Mat());
+    cv::undistortPoints(right_points, undistort_right, camera_parameters, cv::Mat());
+
+    cv::Mat points_homogeneous;
+    cv::triangulatePoints(pleft, pright, undistort_left, undistort_right, points_homogeneous);
+
+    cv::convertPointsFromHomogeneous(points_homogeneous.t(), output_points);
 }

@@ -9,7 +9,7 @@
 
 class StereoUtilities {
     constexpr const static float THRES_RATIO = 0.7f;
-    constexpr const static unsigned int MAX_FEATURES = 800;
+    constexpr const static unsigned int MAX_FEATURES = 8000;
 
 public:
 
@@ -52,7 +52,37 @@ public:
      * @return whether operation has been successful
      */
     static bool decreaseMatrixRank3x3(const cv::Mat &matrix, cv::Mat &output_matrix);
+
+    /**
+     * Converts rotation and translation matrices to projection matrix
+     * @param R - rotation matrix
+     * @param t - translation matrix
+     * @param output_matrix - output projection matrix
+     */
+    static void getProjectionMatrixFromRt(const cv::Mat &R, const cv::Mat &t, cv::Matx34f &output_matrix);
+
+    /**
+     * Checks if key point on an image is already reconstructed
+     * @param reconstructed_points - reconstructed points seen on the image
+     * @param idx - index of a the key point on the image
+     * @return index of the reconstructed key point in point cloud or -1
+     */
+    static int isPointReconstructed(const std::vector<PointProjection> &reconstructed_points, int idx);
+
+    /**
+     * Reconstructs 3D point cloud
+     * @param pleft - left image projection matrix
+     * @param pright - right image projection matrix
+     * @param left_points - left image match points
+     * @param right_points - right image key points
+     * @param camera_parameters - camera parameters
+     * @param output_points - output array of reconstructed 3D points
+     */
+    static void triangulatePoints(const cv::Matx34f &pleft, const cv::Matx34f &pright,
+            const Points2D &left_points, const Points2D &right_points, const cv::Mat &camera_parameters,
+            cv::Mat &output_points);
 };
+
 
 
 #endif //SFM_3D_RECONSTRUCTION_STEREOUTILITIES_H
