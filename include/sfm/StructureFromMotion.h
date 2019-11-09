@@ -8,6 +8,7 @@
 #include "../../src/CommonUtilities.h"
 #include "../../src/StereoUtilities.h"
 
+
 class StructureFromMotion {
     cv::Mat camera_parameters;
     std::vector<cv::Mat> images;
@@ -42,8 +43,8 @@ class StructureFromMotion {
 
     /**
      * Merges new point cloud with existing
-     * @param pleft - left image projection matrix
-     * @param pright - right image projection matrix
+     * @param left_image - index of a left image
+     * @param right_image - index of a right image
      * @param points3D - new reconstructed points
      * @param left_points - real points3D projections on the left image
      * @param right_points - real points3D projections on the right image
@@ -51,7 +52,7 @@ class StructureFromMotion {
      * @param left_image_track - output array of track points for the left image
      * @param right_image_track - output array of track points for the right image
      */
-    void addPointsToPointCloud(const cv::Matx34f &pleft, const cv::Matx34f &pright, const cv::Mat &points3D,
+    void addPointsToPointCloud(int left_image, int right_image, const cv::Mat &points3D,
             const Points2D &left_points, const Points2D &right_points, const Matches &matches,
             std::vector<PointProjection> &left_image_track, std::vector<PointProjection> &right_image_track);
 
