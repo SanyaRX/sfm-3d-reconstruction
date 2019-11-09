@@ -19,7 +19,7 @@ void StereoUtilities::detectMatches(const cv::Mat &first_descriptors, const cv::
         Matches &output_matches)
 {
     cv::FlannBasedMatcher matcher(new cv::flann::LshIndexParams(20, 10, 2));
-    std::vector<Matches> knn_matches;
+    std::vector<Matches> knn_matches;https://www.jetbrains.com/help/clion/installation-guide.html
 
     matcher.knnMatch(first_descriptors, second_descriptors, knn_matches, 2);
 

@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/sfm-3d-reconstruction.iml" filepath="$PROJECT_DIR$/.idea/sfm-3d-reconstruction.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/sfm-3d-reconstructure.iml" filepath="$PROJECT_DIR$/.idea/sfm-3d-reconstructure.iml" />
     </modules>
   </component>
 </project>
