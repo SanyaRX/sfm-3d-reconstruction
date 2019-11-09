@@ -32,7 +32,7 @@ typedef struct IMAGE_MATCH {
 
 typedef struct POINT3D{
     cv::Point3f pt;
-    std::vector<unsigned int> images; // images that show the point
+    std::vector<std::pair<unsigned int, unsigned int>> images; // images that show the point
 } Point3D;
 typedef std::vector<Point3D> PointCloud;
 

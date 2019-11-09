@@ -32,10 +32,11 @@ void StructureFromMotion::run()
     detectImageFeatures();
 
     detectImageMatches();
-
+    CommonUtilities::drawImageMatches(images[0], images[1], images_features[0].key_points, images_features[1].key_points,
+            images_matches[0]);
     firstTwoViewsTriangulation();
 
-    //addNewViews();
+    addNewViews();
 
 }
 
@@ -120,7 +121,7 @@ bool StructureFromMotion::firstTwoViewsTriangulation()
 
     std::vector<PointProjection> left_image_track, right_image_track;
 
-    addPointsToPointCloud(pleft, pright, points3d, left_features.points2D, right_features.points2D, pruned_matches,
+    addPointsToPointCloud(i, j, points3d, left_features.points2D, right_features.points2D, pruned_matches,
             left_image_track, right_image_track);
 
     points_track.push_back(left_image_track);
@@ -180,7 +181,7 @@ bool StructureFromMotion::addNewViews()
                                                points3d);
 
             std::vector<PointProjection> left_image_track, right_image_track;
-            addPointsToPointCloud(proj_matrices[i - 1], projection_matrix, points3d,
+            addPointsToPointCloud(i - 1, i, points3d,
                     points_to_reconstruct_l, points_to_reconstruct_r, reconstruct_matches,
                     left_image_track, right_image_track);
 
@@ -192,12 +193,14 @@ bool StructureFromMotion::addNewViews()
     return true;
 }
 
-void StructureFromMotion::addPointsToPointCloud(const cv::Matx34f &pleft, const cv::Matx34f &pright,
+void StructureFromMotion::addPointsToPointCloud(int left_image, int right_image,
                                                 const cv::Mat &points3D, const Points2D &left_points,
                                                 const Points2D &right_points, const Matches &matches,
                                                 std::vector<PointProjection> &left_image_track,
                                                 std::vector<PointProjection> &right_image_track)
 {
+    cv::Matx34f pleft = proj_matrices[left_image];
+    cv::Matx34f pright = proj_matrices[right_image];
 
     cv::Mat rvec_left;
     Rodrigues(pleft.get_minor<3, 3>(0, 0), rvec_left);
@@ -230,10 +233,10 @@ void StructureFromMotion::addPointsToPointCloud(const cv::Matx34f &pleft, const 
                                points3D.at<float>(i, 1),
                                points3D.at<float>(i, 2)
             );
-
+            p.images.emplace_back(right_image, matches[i].trainIdx);
             this->point_cloud.push_back(p);
-            left_image_track.push_back({this->point_cloud[this->point_cloud.size() - 1].pt, matches[i].queryIdx});
-            right_image_track.push_back({this->point_cloud[this->point_cloud.size() - 1].pt, matches[i].trainIdx});
+            left_image_track.push_back({p.pt, matches[i].queryIdx});
+            right_image_track.push_back({p.pt, matches[i].trainIdx});
         }
     }
 
