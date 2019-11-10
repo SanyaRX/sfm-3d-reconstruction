@@ -32,12 +32,13 @@ void StructureFromMotion::run()
     detectImageFeatures();
 
     detectImageMatches();
-    CommonUtilities::drawImageMatches(images[0], images[1], images_features[0].key_points, images_features[1].key_points,
-            images_matches[0]);
+
     firstTwoViewsTriangulation();
 
+    float parameters[9] = { 1500.0, 0, static_cast<float>(images[0].cols / 2),
+                            0, 1500.0, static_cast<float>(images[0].rows / 2),
+                            0, 0, 1.0 };
     addNewViews();
-
 }
 
 bool StructureFromMotion::detectImageFeatures()
@@ -120,12 +121,19 @@ bool StructureFromMotion::firstTwoViewsTriangulation()
             camera_parameters, points3d);
 
     std::vector<PointProjection> left_image_track, right_image_track;
-
     addPointsToPointCloud(i, j, points3d, left_features.points2D, right_features.points2D, pruned_matches,
             left_image_track, right_image_track);
 
+    for (size_t k = 0; k < points3d.rows; k++)
+        this->point_cloud[k].images.emplace_back(i, pruned_matches[k].queryIdx);
+
+
     points_track.push_back(left_image_track);
     points_track.push_back(right_image_track);
+
+    this->camera_parameters = cv::Mat(3, 3, CV_32F, parameters);
+    BundleAdjustment::processBundleAdjustment(point_cloud, proj_matrices, camera_parameters,
+                                              images_features);
 
     return true;
 }
@@ -189,6 +197,10 @@ bool StructureFromMotion::addNewViews()
             points_track[i - 1].insert(points_track[i - 1].end(), right_image_track.begin(),
                     right_image_track.end());
         }
+        this->camera_parameters = cv::Mat(3, 3, CV_32F, parameters);
+        BundleAdjustment::processBundleAdjustment(point_cloud, proj_matrices, camera_parameters,
+                                                  images_features);
+        savePointCloudXYZ("../points.txt");
     }
     return true;
 }
@@ -226,8 +238,8 @@ void StructureFromMotion::addPointsToPointCloud(int left_image, int right_image,
     for (int i = 0; i < points3D.rows; i++)
     {
         //std::cout << norm(projectedOnLeft[i] - left_points[i]) << std::endl;
-        /*if (norm(projectedOnLeft[i] - left_points[i]) < 10.0 &&
-            norm(projectedOnRight[i] - right_points[i]) < 10.0)*/ {
+        if (norm(projectedOnLeft[i] - left_points[i]) < 10.0 &&
+            norm(projectedOnRight[i] - right_points[i]) < 10.0) {
             Point3D p;
             p.pt = cv::Point3f(points3D.at<float>(i, 0),
                                points3D.at<float>(i, 1),

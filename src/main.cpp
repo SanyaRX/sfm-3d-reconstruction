@@ -2,12 +2,12 @@
 #include "../include/sfm/StructureFromMotion.h"
 
 int main() {
-    auto images = CommonUtilities::loadImages("..\\images\\pack",
+    auto images = CommonUtilities::loadImages("/home/sanyarx/Projects/sfm-3d-reconstructure/images/pack",
             "list.txt", 1);
     StructureFromMotion sfm(images);
     sfm.run();
 
-    sfm.savePointCloudXYZ("C:\\Users\\Lenovo\\Desktop\\output_cloud.txt");
+    sfm.savePointCloudXYZ("output_cloud.txt");
 
     return 0;
 }

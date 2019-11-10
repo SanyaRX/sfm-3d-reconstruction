@@ -7,6 +7,7 @@
 
 #include "../../src/CommonUtilities.h"
 #include "../../src/StereoUtilities.h"
+#include "../../src/BundleAdjustment.h"
 
 
 class StructureFromMotion {

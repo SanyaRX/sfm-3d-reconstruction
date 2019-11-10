@@ -9,7 +9,7 @@
 
 class StereoUtilities {
     constexpr const static float THRES_RATIO = 0.7f;
-    constexpr const static unsigned int MAX_FEATURES = 8000;
+    constexpr const static unsigned int MAX_FEATURES = 10000;
 
 public:
 

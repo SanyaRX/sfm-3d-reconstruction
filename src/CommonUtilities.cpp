@@ -9,15 +9,14 @@ std::vector<cv::Mat> CommonUtilities::loadImages(const std::string &directory_pa
                                        float resize_scale)
 {
     std::ifstream fin;
-    fin.open(directory_path + "\\" + list_file_name);
+    fin.open(directory_path + "/" + list_file_name);
     std::string image_name;
     std::vector<cv::Mat> images;
     while (fin >> image_name)
     {
-        cv::Mat image = cv::imread(directory_path + "\\" + image_name);
+        cv::Mat image = cv::imread(directory_path + "/" + image_name);
         if (resize_scale > 0 && resize_scale < 1)
             cv::resize(image, image, cv::Size(), resize_scale, resize_scale);
-
         images.push_back(image);
     }
 
