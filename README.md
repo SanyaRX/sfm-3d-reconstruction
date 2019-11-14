@@ -1,1 +1,3 @@
-"# sfm-3d-reconstructure" 
+# Used libraries:
+## OpenCV
+## ceres-solver
