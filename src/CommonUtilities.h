@@ -18,6 +18,7 @@ typedef std::vector<cv::Mat> Descriptors;
 typedef std::vector<cv::DMatch> Matches;
 typedef std::vector<cv::Point2f> Points2D;
 typedef std::vector<cv::Point3f> Points3D;
+
 typedef struct FEATURES {
     KeyPoints key_points;
     Points2D points2D;
@@ -32,8 +33,9 @@ typedef struct IMAGE_MATCH {
 
 typedef struct POINT3D{
     cv::Point3f pt;
-    std::vector<std::pair<unsigned int, unsigned int>> images; // images that show the point
+    std::vector<std::pair<size_t, size_t>> images; // images that "see" the point
 } Point3D;
+
 typedef std::vector<Point3D> PointCloud;
 
 typedef struct POINT_PROJECTION {
@@ -41,6 +43,10 @@ typedef struct POINT_PROJECTION {
     int proj_idx;
 } PointProjection;
 
+typedef struct CAMERA_PARAMETERS {
+    cv::Mat k_matrix;
+    cv::Mat distortion;
+} CameraParameters;
 class CommonUtilities {
 
 public:

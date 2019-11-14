@@ -8,16 +8,21 @@
 #include "../../src/CommonUtilities.h"
 #include "../../src/StereoUtilities.h"
 #include "../../src/BundleAdjustment.h"
-
+#include <algorithm>
 
 class StructureFromMotion {
-    cv::Mat camera_parameters;
+    CameraParameters camera_parameters;
     std::vector<cv::Mat> images;
     std::vector<Features> images_features;
-    std::vector<Matches> images_matches;
-    std::vector<cv::Matx34f> proj_matrices;
+    std::vector<std::vector<Matches>> match_matrix;
+    std::vector<cv::Matx34f> pose_matrices;
     std::vector<std::vector<PointProjection>> points_track;
+
+    std::vector<bool> processed_images;
+    std::vector<std::vector<bool>> processed_pairs;
+
     PointCloud point_cloud;
+
     /**
      * Detects features of all the images
      * @return whether the operation has been successful
@@ -31,7 +36,7 @@ class StructureFromMotion {
     bool detectImageMatches();
 
     /**
-     * Compute projection matrices for first two views and triangulate points seen by this views
+     * Computes projection matrices for first two views and triangulates points seen by this views
      * @return whether the operation has been successful
      */
     bool firstTwoViewsTriangulation();
@@ -56,6 +61,14 @@ class StructureFromMotion {
     void addPointsToPointCloud(int left_image, int right_image, const cv::Mat &points3D,
             const Points2D &left_points, const Points2D &right_points, const Matches &matches,
             std::vector<PointProjection> &left_image_track, std::vector<PointProjection> &right_image_track);
+
+    /**
+     * Returns an index of a good fit image to reconstruct points from.
+     * @param img_reconstructed_pts - vector of point cloud reconstructed points indices seen by the image
+     * @param img_reconstructed_indices - indices of 2d image features according to reconstructed points
+     * @return index of the next image
+     */
+    int nextImageToReconstruct(std::vector<size_t> &img_reconstructed_pts, std::vector<size_t> &img_reconstructed_indices);
 
 public:
     /**

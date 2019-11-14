@@ -20,23 +20,23 @@ struct SimpleReprojectionError {
                     const T* const focal,
                     T* residuals) const {
         T p[3];
-        // Rotate: camera[0,1,2] are the angle-axis rotation.
+
         ceres::AngleAxisRotatePoint(camera, point, p);
 
-        // Translate: camera[3,4,5] are the translation.
+
         p[0] += camera[3];
         p[1] += camera[4];
         p[2] += camera[5];
 
-        // Perspective divide
+
         const T xp = p[0] / p[2];
         const T yp = p[1] / p[2];
 
-        // Compute final projected point position.
+
         const T predicted_x = *focal * xp;
         const T predicted_y = *focal * yp;
 
-        // The error is the difference between the predicted and observed position.
+
         residuals[0] = predicted_x - T(observed_x);
         residuals[1] = predicted_y - T(observed_y);
         return true;
@@ -57,11 +57,9 @@ void BundleAdjustment::processBundleAdjustment(PointCloud &point_cloud, std::vec
 {
     std::call_once(initLoggingFlag, initLogging);
 
-    // Create residuals for each observation in the bundle adjustment problem. The
-    // parameters for cameras and points are added automatically.
+
     ceres::Problem problem;
 
-    //Convert camera pose parameters from [R|t] (3x4) to [Angle-Axis (3), Translation (3), focal (1)] (1x7)
     typedef cv::Matx<double, 1, 6> CameraVector;
     std::vector<CameraVector> cameraPoses6d;
     cameraPoses6d.reserve(camera_poses.size());
@@ -69,25 +67,25 @@ void BundleAdjustment::processBundleAdjustment(PointCloud &point_cloud, std::vec
         const cv::Matx34f& pose = camera_poses[i];
 
         if (pose(0, 0) == 0 and pose(1, 1) == 0 and pose(2, 2) == 0) {
-            //This camera pose is empty, it should not be used in the optimization
-            cameraPoses6d.push_back(CameraVector());
+
+            cameraPoses6d.emplace_back();
             continue;
         }
         cv::Vec3f t(pose(0, 3), pose(1, 3), pose(2, 3));
         cv::Matx33f R = pose.get_minor<3, 3>(0, 0);
         float angleAxis[3];
-        ceres::RotationMatrixToAngleAxis<float>(R.t().val, angleAxis); //Ceres assumes col-major...
+        ceres::RotationMatrixToAngleAxis<float>(R.t().val, angleAxis);
 
-        cameraPoses6d.push_back(CameraVector(
+        cameraPoses6d.emplace_back(
                 angleAxis[0],
                 angleAxis[1],
                 angleAxis[2],
                 t(0),
                 t(1),
-                t(2)));
+                t(2));
     }
 
-    //focal-length factor for optimization
+
     double focal = camera_parameters.at<float>(0, 0);
 
     std::vector<cv::Vec3d> points3d(point_cloud.size());
@@ -97,17 +95,13 @@ void BundleAdjustment::processBundleAdjustment(PointCloud &point_cloud, std::vec
         points3d[i] = cv::Vec3d(p.pt.x, p.pt.y, p.pt.z);
 
         for (const auto& kv : p.images) {
-            //kv.first  = camera index
-            //kv.second = 2d feature index
+
             cv::Point2f p2d = images_features[kv.first].points2D[kv.second];
 
-            //subtract center of projection, since the optimizer doesn't know what it is
+
             p2d.x -= camera_parameters.at<float>(0, 2);
             p2d.y -= camera_parameters.at<float>(1, 2);
 
-            // Each Residual block takes a point and a camera as input and outputs a 2
-            // dimensional residual. Internally, the cost function stores the observed
-            // image location and compares the reprojection against the observation.
             ceres::CostFunction* cost_function = SimpleReprojectionError::Create(p2d.x, p2d.y);
 
             problem.AddResidualBlock(cost_function,
@@ -118,9 +112,7 @@ void BundleAdjustment::processBundleAdjustment(PointCloud &point_cloud, std::vec
         }
     }
 
-    // Make Ceres automatically detect the bundle structure. Note that the
-    // standard solver, SPARSE_NORMAL_CHOLESKY, also works fine but it is slower
-    // for standard bundle adjustment problems.
+
     ceres::Solver::Options options;
     options.linear_solver_type = ceres::DENSE_SCHUR;
     options.minimizer_progress_to_stdout = true;
@@ -134,31 +126,28 @@ void BundleAdjustment::processBundleAdjustment(PointCloud &point_cloud, std::vec
 
 
 
-    //update optimized focal
     camera_parameters.at<float>(0, 0) = focal;
     camera_parameters.at<float>(1, 1) = focal;
 
-    //Implement the optimized camera poses and 3D points back into the reconstruction
     for (size_t i = 0; i < camera_poses.size(); i++) {
         auto& pose = camera_poses[i];
         auto poseBefore = pose;
 
         if (pose(0, 0) == 0 and pose(1, 1) == 0 and pose(2, 2) == 0) {
-            //This camera pose is empty, it was not used in the optimization
+
             continue;
         }
 
-        //Convert optimized Angle-Axis back to rotation matrix
+
         double rotationMat[9] = { 0 };
         ceres::AngleAxisToRotationMatrix(cameraPoses6d[i].val, rotationMat);
 
         for (int r = 0; r < 3; r++) {
             for (int c = 0; c < 3; c++) {
-                pose(c, r) = rotationMat[r * 3 + c]; //`rotationMat` is col-major...
+                pose(c, r) = rotationMat[r * 3 + c];
             }
         }
 
-        //Translation
         pose(0, 3) = cameraPoses6d[i](3);
         pose(1, 3) = cameraPoses6d[i](4);
         pose(2, 3) = cameraPoses6d[i](5);

@@ -9,7 +9,7 @@
 
 class StereoUtilities {
     constexpr const static float THRES_RATIO = 0.7f;
-    constexpr const static unsigned int MAX_FEATURES = 10000;
+    constexpr const static unsigned int MAX_FEATURES = 8000;
 
 public:
 
@@ -81,6 +81,18 @@ public:
     static void triangulatePoints(const cv::Matx34f &pleft, const cv::Matx34f &pright,
             const Points2D &left_points, const Points2D &right_points, const cv::Mat &camera_parameters,
             cv::Mat &output_points);
+
+    /**
+     * Removes outliers from matches using RANSAC-based robust method
+     * @param left_image_features - left image features
+     * @param right_im1age_features - right image features
+     * @param matches - image matches
+     * @param proved_matches - output array for proved matches
+     */
+    static void removeOutlierMatches(const Features &left_image_features,
+                                     const Features &right_im1age_features,
+                                     const Matches &matches,
+                                     Matches &proved_matches);
 };
 
 

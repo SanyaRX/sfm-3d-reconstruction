@@ -1,13 +1,15 @@
 #include <iostream>
 #include "../include/sfm/StructureFromMotion.h"
 
+
+
 int main() {
-    auto images = CommonUtilities::loadImages("/home/sanyarx/Projects/sfm-3d-reconstructure/images/pack",
-            "list.txt", 1);
+    auto images = CommonUtilities::loadImages("../images/win-key",
+            "list.txt", 0.4);
     StructureFromMotion sfm(images);
     sfm.run();
 
-    sfm.savePointCloudXYZ("output_cloud.txt");
+    sfm.savePointCloudXYZ("../points.txt");
 
     return 0;
 }
