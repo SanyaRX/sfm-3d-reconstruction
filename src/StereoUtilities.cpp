@@ -19,7 +19,7 @@ void StereoUtilities::detectMatches(const cv::Mat &first_descriptors, const cv::
         Matches &output_matches)
 {
     cv::FlannBasedMatcher matcher(new cv::flann::LshIndexParams(20, 10, 2));
-    std::vector<Matches> knn_matches;https://www.jetbrains.com/help/clion/installation-guide.html
+    std::vector<Matches> knn_matches;
 
     matcher.knnMatch(first_descriptors, second_descriptors, knn_matches, 2);
 
@@ -106,4 +106,22 @@ void StereoUtilities::triangulatePoints(const cv::Matx34f &pleft, const cv::Matx
     cv::triangulatePoints(pleft, pright, undistort_left, undistort_right, points_homogeneous);
 
     cv::convertPointsFromHomogeneous(points_homogeneous.t(), output_points);
+}
+
+void StereoUtilities::removeOutlierMatches(const Features &left_image_features, const Features &right_im1age_features,
+                                           const Matches &matches, Matches &proved_matches)
+{
+    proved_matches.clear();
+    Features left_match_points, right_match_points;
+    getMatchPoints(left_image_features, right_im1age_features, matches, left_match_points, right_match_points);
+
+    cv::Mat mask;
+    cv::Mat homography = cv::findHomography(left_match_points.points2D, right_match_points.points2D, cv::RANSAC,
+            10, mask);
+
+    for (size_t i = 0; i < mask.rows; i++)
+    {
+        if((int)mask.at<uchar>(i, 0))
+            proved_matches.push_back(matches[i]);
+    }
 }

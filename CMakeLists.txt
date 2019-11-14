@@ -3,9 +3,8 @@ project(sfm_3d_reconstruction)
 
 set(CMAKE_CXX_STANDARD 17)
 
-find_package( OpenCV REQUIRED )
+find_package(OpenCV REQUIRED)
 find_package(Ceres REQUIRED)
-find_package(PCL REQUIRED)
 
 add_executable (sfm_3d_reconstruction src/main.cpp
         src/CommonUtilities.cpp src/CommonUtilities.h
@@ -14,4 +13,4 @@ add_executable (sfm_3d_reconstruction src/main.cpp
         src/BundleAdjustment.cpp src/BundleAdjustment.h
         )
 
-target_link_libraries(sfm_3d_reconstruction ${OpenCV_LIBS} ceres pcl)
+target_link_libraries(sfm_3d_reconstruction ${OpenCV_LIBS} ceres)
