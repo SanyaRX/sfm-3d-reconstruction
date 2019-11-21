@@ -9,8 +9,8 @@
 
 StructureFromMotion::StructureFromMotion(const std::vector<cv::Mat>& images) : images(images)
 {
-    float parameters[9] = { 1500.0, 0, static_cast<float>(images[0].cols / 2),
-                            0, 1500.0, static_cast<float>(images[0].rows / 2),
+    float parameters[9] = { focal, 0, static_cast<float>(images[0].cols / 2),
+                            0, focal, static_cast<float>(images[0].rows / 2),
                             0, 0, 1.0 };
     this->camera_parameters.k_matrix = cv::Mat(3, 3, CV_32F, parameters);
 }
@@ -19,8 +19,8 @@ StructureFromMotion::StructureFromMotion(const std::string &directory_path, cons
                                          float resize_scale)
 {
     this->images = CommonUtilities::loadImages(directory_path, list_file_name, resize_scale);
-    float parameters[9] = { 1500.0, 0, static_cast<float>(images[0].cols / 2),
-                            0, 1500.0, static_cast<float>(images[0].rows / 2),
+    float parameters[9] = { focal, 0, static_cast<float>(images[0].cols / 2),
+                            0, focal, static_cast<float>(images[0].rows / 2),
                             0, 0, 1.0 };
     this->camera_parameters.k_matrix = cv::Mat(3, 3, CV_32F, parameters);
 }
@@ -33,7 +33,7 @@ void StructureFromMotion::run()
 
     firstTwoViewsTriangulation();
 
-    //addNewViews();
+    addNewViews();
 }
 
 bool StructureFromMotion::detectImageFeatures()
@@ -57,7 +57,7 @@ bool StructureFromMotion::detectImageMatches()
     if (images_features.empty())
         return false;
 
-    std::cout << "Images matching detecting..." << std::endl;
+    std::cout << "Images matches detecting..." << std::endl;
 
     match_matrix.resize(images.size(), std::vector<Matches>(images.size()));
     for (size_t i = 0; i < images_features.size() - 1; i++)
@@ -72,12 +72,13 @@ bool StructureFromMotion::detectImageMatches()
             StereoUtilities::removeOutlierMatches(images_features[i],
                     images_features[j], matches, proved_matches);
 
-            std::cout << "Matches size: " << matches.size() << std::endl
+            /*std::cout << "Matches size: " << matches.size() << std::endl
             << "Proved matches size: " << proved_matches.size() << std::endl
             << "---------------------------\n";
-            /*CommonUtilities::drawImageMatches(images[i], images[j], images_features[i].key_points,
+            CommonUtilities::drawImageMatches(images[i], images[j], images_features[i].key_points,
                     images_features[j].key_points, matches);*/
             match_matrix[i][j] = proved_matches;
+
         }
     }
 
@@ -107,15 +108,15 @@ bool StructureFromMotion::firstTwoViewsTriangulation()
         }
     }
 
-    CommonUtilities::drawImageMatches(images[left_idx], images[right_idx], images_features[left_idx].key_points,
-            images_features[right_idx].key_points, match_matrix[left_idx][right_idx]);
+    /*CommonUtilities::drawImageMatches(images[left_idx], images[right_idx], images_features[left_idx].key_points,
+            images_features[right_idx].key_points, match_matrix[left_idx][right_idx]);*/
 
     Features left_features, right_features;
     StereoUtilities::getMatchPoints(images_features[left_idx], images_features[right_idx],
                                     match_matrix[left_idx][right_idx], left_features, right_features);
 
-    float parameters[9] = { 1500.0, 0, static_cast<float>(images[0].cols / 2),
-                            0, 1500.0, static_cast<float>(images[0].rows / 2),
+    float parameters[9] = { focal, 0, static_cast<float>(images[0].cols / 2),
+                            0, focal, static_cast<float>(images[0].rows / 2),
                             0, 0, 1.0 };
 
     this->camera_parameters.k_matrix = cv::Mat(3, 3, CV_32F, parameters);
@@ -134,18 +135,19 @@ bool StructureFromMotion::firstTwoViewsTriangulation()
     cv::recoverPose(essential_mat, left_features.points2D, right_features.points2D,
             R, t, focal, pp, mask);
 
-    cv::Matx34f pleft = cv::Matx34f::eye();
+
 
     cv::Matx34f pright;
     StereoUtilities::getProjectionMatrixFromRt(R, t, pright);
     this->pose_matrices.resize(images.size());
-    this->pose_matrices[left_idx] = pleft;
+    this->pose_matrices[left_idx] = cv::Matx34f::eye();
     this->pose_matrices[right_idx] = pright;
 
     this->camera_parameters.k_matrix = cv::Mat(3, 3, CV_32F, parameters);
 
     cv::Mat points3d;
-    StereoUtilities::triangulatePoints(pleft, pright, left_features.points2D, right_features.points2D,
+    StereoUtilities::triangulatePoints( this->pose_matrices[left_idx], this->pose_matrices[right_idx],
+            left_features.points2D, right_features.points2D,
             camera_parameters.k_matrix, points3d);
 
 
@@ -158,24 +160,27 @@ bool StructureFromMotion::firstTwoViewsTriangulation()
     points_track.push_back(left_image_track); // ???? remove
     points_track.push_back(right_image_track);
 
-
     BundleAdjustment::processBundleAdjustment(point_cloud, pose_matrices, camera_parameters.k_matrix,
                                               images_features);
-
+    std::cout << camera_parameters.k_matrix << std::endl;
+    this->focal = camera_parameters.k_matrix.at<float>(0,0);
     processed_images[left_idx] = true;
     processed_images[right_idx] = true;
     processed_pairs[left_idx][right_idx] = true;
 
+    savePointCloudXYZ("../points2views.txt");
     return true;
 }
 
 bool StructureFromMotion::addNewViews()
 {
+
     if(pose_matrices.size() < 2)
         return false;
 
-    float parameters[9] = { 1500.0, 0, static_cast<float>(images[0].cols / 2),
-                            0, 1500.0, static_cast<float>(images[0].rows / 2),
+
+    float parameters[9] = { focal, 0, static_cast<float>(images[0].cols / 2),
+                            0, focal, static_cast<float>(images[0].rows / 2),
                             0, 0, 1.0 };
 
     this->camera_parameters.k_matrix = cv::Mat(3, 3, CV_32F, parameters);
@@ -187,6 +192,8 @@ bool StructureFromMotion::addNewViews()
     std::vector<size_t> reconstructed_points, reconstructed_indices;
     while ((next_image = nextImageToReconstruct(reconstructed_points, reconstructed_indices)) != -1)
     {
+        processed_images[next_image] = true;
+
         Points3D existing_points(reconstructed_points.size());
         Points2D current_features(reconstructed_points.size()), points_to_reconstruct_l, points_to_reconstruct_r;
         for (size_t j = 0; j < reconstructed_points.size(); j++)
@@ -194,14 +201,19 @@ bool StructureFromMotion::addNewViews()
             existing_points.push_back(point_cloud[reconstructed_points[j]].pt);
             current_features.push_back(images_features[next_image].points2D[reconstructed_indices[j]]);
         }
-
+        if(existing_points.size() < 4){
+            std::cout << "Not enough points\n";
+            return true;
+        }
+        this->camera_parameters.k_matrix = cv::Mat(3, 3, CV_32F, parameters);
+        std::cout << camera_parameters.k_matrix << std::endl;
         cv::Mat R, t;
         cv::Mat inliers;
         cv::solvePnPRansac(
                 existing_points,
                 current_features,
                 camera_parameters.k_matrix,
-                camera_parameters.distortion,
+                cv::Mat(),
                 R,
                 t,
                 false,
@@ -210,6 +222,11 @@ bool StructureFromMotion::addNewViews()
                 0.99,
                 inliers
         );
+        float inliersRatio = (float)cv::countNonZero(inliers) / existing_points.size();
+        std::cout << "Inliers ratio: " << inliersRatio << std::endl;
+        if(inliersRatio < 0.5)
+            break;
+
         cv::Rodrigues(R, R);
         cv::Matx34f pose;
         StereoUtilities::getProjectionMatrixFromRt(R, t, pose);
@@ -219,13 +236,13 @@ bool StructureFromMotion::addNewViews()
         for (size_t i = 0; i < next_image; i++)
         {
             if(pose_matrices[i](0, 0) || pose_matrices[i](1, 1)
-            || pose_matrices[i](2, 2))
+               || pose_matrices[i](2, 2))
             {
                 Matches reconstruct_matches;
                 for (const cv::DMatch match : match_matrix[i][next_image])
                 {
                     if (std::find(reconstructed_indices.begin(), reconstructed_indices.end(), match.trainIdx)
-                    == reconstructed_indices.end())
+                        == reconstructed_indices.end())
                     {
                         points_to_reconstruct_l.push_back(images_features[i].points2D[match.queryIdx]);
                         points_to_reconstruct_r.push_back(images_features[next_image].points2D[match.trainIdx]);
@@ -259,7 +276,6 @@ bool StructureFromMotion::addNewViews()
                 savePointCloudXYZ("../points.txt");
             }
         }
-        processed_images[next_image] = true;
     }
 
 
@@ -283,24 +299,22 @@ void StructureFromMotion::addPointsToPointCloud(int left_image, int right_image,
     Rodrigues(pright.get_minor<3, 3>(0, 0), rvec_right);
     cv::Mat tvec_right(pright.get_minor<3, 1>(0, 3).t());
 
-    cv::Mat camera_params;
-    float parameters[9] = { 1500.0, 0, static_cast<float>(images[0].cols / 2),
-                            0, 1500.0, static_cast<float>(images[0].rows / 2),
+    float parameters[9] = { focal, 0, static_cast<float>(images[0].cols / 2),
+                            0, focal, static_cast<float>(images[0].rows / 2),
                             0, 0, 1.0 };
 
-    camera_params = cv::Mat(3, 3, CV_32F, parameters);
+    this->camera_parameters.k_matrix = cv::Mat(3, 3, CV_32F, parameters);
 
     Points2D projectedOnLeft;
-    projectPoints(points3D, rvec_left, tvec_left, camera_params, cv::Mat(), projectedOnLeft);
+    cv::projectPoints(points3D, rvec_left, tvec_left,  this->camera_parameters.k_matrix, cv::Mat(), projectedOnLeft);
 
     Points2D projectedOnRight;
-    projectPoints(points3D, rvec_right, tvec_right, camera_params, cv::Mat(), projectedOnRight);
-
+    cv::projectPoints(points3D, rvec_right, tvec_right,  this->camera_parameters.k_matrix, cv::Mat(), projectedOnRight);
+    std::cout << camera_parameters.k_matrix << std::endl;
     for (size_t i = 0; i < points3D.rows; i++)
     {
-        std::cout << "Norm: " << norm(projectedOnLeft[i] - left_points[i]) << " - " << norm(projectedOnRight[i] - right_points[i]) << std::endl;
-       /* if (norm(projectedOnLeft[i] - left_points[i]) < 10.0 &&
-            norm(projectedOnRight[i] - right_points[i]) < 10.0)*/ {
+        if (norm(projectedOnLeft[i] - left_points[i]) < 10.0 &&
+            norm(projectedOnRight[i] - right_points[i]) < 10.0) {
             Point3D p;
             p.pt = cv::Point3f(points3D.at<float>(i, 0),
                                points3D.at<float>(i, 1),
@@ -311,7 +325,7 @@ void StructureFromMotion::addPointsToPointCloud(int left_image, int right_image,
 
             for (size_t j = 0; j < left_image; j++)
             {
-                for (cv::DMatch match : match_matrix[j][left_image])
+                for (const cv::DMatch &match : match_matrix[j][left_image])
                 {
                     if(match.trainIdx == matches[i].queryIdx)
                     {
@@ -325,7 +339,7 @@ void StructureFromMotion::addPointsToPointCloud(int left_image, int right_image,
             {
                 if(j != right_image)
                 {
-                    for (cv::DMatch match : match_matrix[left_image][j])
+                    for (const cv::DMatch &match : match_matrix[left_image][j])
                     {
                         if (match.queryIdx == matches[i].queryIdx)
                         {
@@ -337,8 +351,8 @@ void StructureFromMotion::addPointsToPointCloud(int left_image, int right_image,
             }
 
             this->point_cloud.push_back(p);
-            left_image_track.push_back({p.pt, matches[i].queryIdx});
-            right_image_track.push_back({p.pt, matches[i].trainIdx});
+            /*left_image_track.push_back({p.pt, matches[i].queryIdx});
+            right_image_track.push_back({p.pt, matches[i].trainIdx});*/
         }
     }
 
@@ -351,7 +365,7 @@ int StructureFromMotion::nextImageToReconstruct(std::vector<size_t> &img_reconst
     std::vector<std::vector<size_t>> reconstructed_pts(images.size()), reconstructed_indices(images.size());
     for (size_t i = 0; i < point_cloud.size(); i++)
     {
-        for (const std::pair<size_t, size_t> proj : point_cloud[i].images)
+        for (const std::pair<size_t, size_t> &proj : point_cloud[i].images)
         {
             if(!processed_images[proj.first])
             {

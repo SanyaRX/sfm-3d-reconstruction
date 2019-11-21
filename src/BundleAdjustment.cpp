@@ -63,6 +63,7 @@ void BundleAdjustment::processBundleAdjustment(PointCloud &point_cloud, std::vec
     typedef cv::Matx<double, 1, 6> CameraVector;
     std::vector<CameraVector> cameraPoses6d;
     cameraPoses6d.reserve(camera_poses.size());
+
     for (size_t i = 0; i < camera_poses.size(); i++) {
         const cv::Matx34f& pose = camera_poses[i];
 
@@ -90,14 +91,15 @@ void BundleAdjustment::processBundleAdjustment(PointCloud &point_cloud, std::vec
 
     std::vector<cv::Vec3d> points3d(point_cloud.size());
 
+
     for (int i = 0; i < point_cloud.size(); i++) {
-        const auto& p = point_cloud[i];
+
+        const Point3D& p = point_cloud[i];
+
         points3d[i] = cv::Vec3d(p.pt.x, p.pt.y, p.pt.z);
 
         for (const auto& kv : p.images) {
-
             cv::Point2f p2d = images_features[kv.first].points2D[kv.second];
-
 
             p2d.x -= camera_parameters.at<float>(0, 2);
             p2d.y -= camera_parameters.at<float>(1, 2);
@@ -109,16 +111,17 @@ void BundleAdjustment::processBundleAdjustment(PointCloud &point_cloud, std::vec
                                      cameraPoses6d[kv.first].val,
                                      points3d[i].val,
                                      &focal);
-        }
-    }
 
+        }
+
+    }
 
     ceres::Solver::Options options;
     options.linear_solver_type = ceres::DENSE_SCHUR;
     options.minimizer_progress_to_stdout = true;
     options.max_num_iterations = 500;
-    options.eta = 1e-2;
-    options.max_solver_time_in_seconds = 10;
+    options.eta = 1e-3;
+    options.max_solver_time_in_seconds = 15;
     options.logging_type = ceres::LoggingType::SILENT;
     ceres::Solver::Summary summary;
     ceres::Solve(options, &problem, &summary);
@@ -152,10 +155,11 @@ void BundleAdjustment::processBundleAdjustment(PointCloud &point_cloud, std::vec
         pose(1, 3) = cameraPoses6d[i](4);
         pose(2, 3) = cameraPoses6d[i](5);
     }
-
+    std::cout << camera_parameters << std::endl;
     for (int i = 0; i < point_cloud.size(); i++) {
         point_cloud[i].pt.x = points3d[i](0);
         point_cloud[i].pt.y = points3d[i](1);
         point_cloud[i].pt.z = points3d[i](2);
     }
+
 }

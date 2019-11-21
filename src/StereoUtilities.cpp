@@ -94,6 +94,7 @@ int StereoUtilities::isPointReconstructed(const std::vector<PointProjection> &re
     return -1;
 }
 
+#include <iostream>
 void StereoUtilities::triangulatePoints(const cv::Matx34f &pleft, const cv::Matx34f &pright,
                                         const Points2D &left_points, const Points2D &right_points,
                                         const cv::Mat &camera_parameters, cv::Mat &output_points)

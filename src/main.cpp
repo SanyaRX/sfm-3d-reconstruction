@@ -2,10 +2,9 @@
 #include "../include/sfm/StructureFromMotion.h"
 
 
-
 int main() {
     auto images = CommonUtilities::loadImages("../images/win-key",
-            "list.txt", 0.4);
+            "list.txt", 1);
     StructureFromMotion sfm(images);
     sfm.run();
 
