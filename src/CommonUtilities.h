@@ -16,8 +16,8 @@
 typedef std::vector<cv::KeyPoint> KeyPoints;
 typedef std::vector<cv::Mat> Descriptors;
 typedef std::vector<cv::DMatch> Matches;
-typedef std::vector<cv::Point2f> Points2D;
-typedef std::vector<cv::Point3f> Points3D;
+typedef std::vector<cv::Point2d> Points2D;
+typedef std::vector<cv::Point3d> Points3D;
 
 typedef struct FEATURES {
     KeyPoints key_points;
@@ -59,7 +59,7 @@ public:
      */
     static std::vector<cv::Mat> loadImages(const std::string &directory_path,
                                            const std::string &list_file_name,
-                                           float resize_scale = 0);
+                                           double resize_scale = 0);
 
     /**
      * Draws image matches

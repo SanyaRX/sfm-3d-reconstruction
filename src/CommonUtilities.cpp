@@ -6,7 +6,7 @@
 #include <iostream>
 std::vector<cv::Mat> CommonUtilities::loadImages(const std::string &directory_path,
                                        const std::string &list_file_name,
-                                       float resize_scale)
+                                                 double resize_scale)
 {
     std::ifstream fin;
     fin.open(directory_path + "/" + list_file_name);
@@ -40,3 +40,4 @@ void CommonUtilities::drawImageMatches(const cv::Mat &first_image,
     cv::imshow("Image Matches", img_matches);
     cv::waitKey();
 }
+

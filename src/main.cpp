@@ -3,7 +3,7 @@
 
 
 int main() {
-    auto images = CommonUtilities::loadImages("../images/win-key",
+    auto images = CommonUtilities::loadImages("../images/stone",
             "list.txt", 1);
     StructureFromMotion sfm(images);
     sfm.run();

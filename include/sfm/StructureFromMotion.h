@@ -11,11 +11,12 @@
 #include <algorithm>
 
 class StructureFromMotion {
-    CameraParameters camera_parameters;
+
     std::vector<cv::Mat> images;
     std::vector<Features> images_features;
     std::vector<std::vector<Matches>> match_matrix;
-    std::vector<cv::Matx34f> pose_matrices;
+    CameraParameters camera_parameters;
+    std::vector<cv::Matx34d> pose_matrices;
     std::vector<std::vector<PointProjection>> points_track;
 
     std::vector<bool> processed_images;
@@ -23,7 +24,7 @@ class StructureFromMotion {
 
     PointCloud point_cloud;
 
-    float focal = 1000;
+    double focal = 910.9665027392168;
     /**
      * Detects features of all the images
      * @return whether the operation has been successful
@@ -72,15 +73,6 @@ class StructureFromMotion {
     int nextImageToReconstruct(std::vector<size_t> &img_reconstructed_pts, std::vector<size_t> &img_reconstructed_indices);
 
 public:
-    /**
-     * Constructor that load images of an object from directory
-     * @param directory_path - path to directory with images
-     * @param list_file_name - name of file with image names list
-     * @param resize_scale - float in interval (0, 1) defines resized image sizes. If out of (0, 1) then image won't be resized.
-     */
-    StructureFromMotion(const std::string &directory_path,
-                        const std::string &list_file_name,
-                        float resize_scale = 0);
 
     /**
      * Constructor that takes images

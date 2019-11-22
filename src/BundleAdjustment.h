@@ -21,8 +21,8 @@ public:
      * @param images_features - image features
      */
     static void processBundleAdjustment(PointCloud &point_cloud,
-                                        std::vector<cv::Matx34f> &camera_poses,
-                                        cv::Mat &camera_parameters,
+                                        std::vector<cv::Matx34d> &camera_poses,
+                                        CameraParameters &camera_parameters,
                                         const std::vector<Features> &images_features);
 
 };
