@@ -24,7 +24,7 @@ class StructureFromMotion {
 
     PointCloud point_cloud;
 
-    double focal = 910.9665027392168;
+    double focal = 1000;
     /**
      * Detects features of all the images
      * @return whether the operation has been successful

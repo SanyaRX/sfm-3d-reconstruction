@@ -60,13 +60,14 @@ bool StructureFromMotion::detectImageMatches()
     {
         for (size_t j = i + 1; j < images_features.size(); j++)
         {
+            std::cout << "\r" << "Pair: " << i << " - " << j << "    " << std::flush;
             Matches matches;
             StereoUtilities::detectMatches(images_features[i].descriptor,
                     images_features[j].descriptor, matches);
 
             Matches proved_matches;
             StereoUtilities::removeOutlierMatches(images_features[i],
-                    images_features[j], matches, proved_matches);
+                    images_features[j], matches, camera_parameters, proved_matches);
 
             /*std::cout << "Matches size: " << matches.size() << std::endl
             << "Proved matches size: " << proved_matches.size() << std::endl
@@ -77,7 +78,7 @@ bool StructureFromMotion::detectImageMatches()
 
         }
     }
-
+    std::cout << std::endl;
     return true;
 }
 
@@ -112,7 +113,6 @@ bool StructureFromMotion::firstTwoViewsTriangulation()
                                     match_matrix[left_idx][right_idx], left_features, right_features);
 
 
-
     cv::Point2d pp(camera_parameters.k_matrix.at<double>(0, 2),
             camera_parameters.k_matrix.at<double>(1, 2));
 
@@ -130,16 +130,19 @@ bool StructureFromMotion::firstTwoViewsTriangulation()
 
 
     cv::Matx34f pright;
+
     StereoUtilities::getProjectionMatrixFromRt(R, t, pright);
     this->pose_matrices.resize(images.size());
     this->pose_matrices[left_idx] = cv::Matx34f::eye();
     this->pose_matrices[right_idx] = pright;
 
     cv::Mat points3d;
-    std::cout << camera_parameters.k_matrix << std::endl;
+
     StereoUtilities::triangulatePoints( this->pose_matrices[left_idx], this->pose_matrices[right_idx],
             left_features.points2D, right_features.points2D,
             camera_parameters.k_matrix, points3d);
+
+
 
     std::vector<PointProjection> left_image_track, right_image_track;
     addPointsToPointCloud(left_idx, right_idx, points3d, left_features.points2D, right_features.points2D, match_matrix[left_idx][right_idx],
@@ -149,7 +152,7 @@ bool StructureFromMotion::firstTwoViewsTriangulation()
 
     /*points_track.push_back(left_image_track); // ???? remove
     points_track.push_back(right_image_track);*/
-    std::cout << camera_parameters.k_matrix << std::endl;
+
     BundleAdjustment::processBundleAdjustment(this->point_cloud, this->pose_matrices, this->camera_parameters,
                                               this->images_features);
 
@@ -187,7 +190,7 @@ bool StructureFromMotion::addNewViews()
             return true;
         }
 
-
+        std::cout << camera_parameters.k_matrix << std::endl;
         cv::Mat R, t;
         cv::Mat inliers;
         cv::solvePnPRansac(
@@ -219,6 +222,7 @@ bool StructureFromMotion::addNewViews()
             if(pose_matrices[i](0, 0) || pose_matrices[i](1, 1)
                || pose_matrices[i](2, 2))
             {
+
                 Matches reconstruct_matches;
                 for (const cv::DMatch match : match_matrix[i][next_image])
                 {
@@ -286,7 +290,7 @@ void StructureFromMotion::addPointsToPointCloud(int left_image, int right_image,
 
     Points2D projectedOnRight;
     cv::projectPoints(points3D, rvec_right, tvec_right,  this->camera_parameters.k_matrix, cv::Mat(), projectedOnRight);
-    std::cout << camera_parameters.k_matrix << std::endl;
+
     for (size_t i = 0; i < points3D.rows; i++)
     {
         if (norm(projectedOnLeft[i] - left_points[i]) < 10.0 &&
@@ -299,6 +303,8 @@ void StructureFromMotion::addPointsToPointCloud(int left_image, int right_image,
             p.images.emplace_back(left_image, matches[i].queryIdx);
             p.images.emplace_back(right_image, matches[i].trainIdx);
 
+            bool is_match = false;
+
             for (size_t j = 0; j < left_image; j++)
             {
                 for (const cv::DMatch &match : match_matrix[j][left_image])
@@ -306,27 +312,27 @@ void StructureFromMotion::addPointsToPointCloud(int left_image, int right_image,
                     if(match.trainIdx == matches[i].queryIdx)
                     {
                         p.images.emplace_back(j, match.queryIdx);
+                        is_match = true;
                         break;
                     }
                 }
             }
 
-            for (size_t j = left_image + 1; j < images.size(); j++)
-            {
-                if(j != right_image)
-                {
-                    for (const cv::DMatch &match : match_matrix[left_image][j])
-                    {
-                        if (match.queryIdx == matches[i].queryIdx)
-                        {
-                            p.images.emplace_back(j, match.trainIdx);
-                            break;
+            if(!is_match) {
+                for (size_t j = left_image + 1; j < images.size(); j++) {
+                    if (j != right_image) {
+                        for (const cv::DMatch &match : match_matrix[left_image][j]) {
+                            if (match.queryIdx == matches[i].queryIdx) {
+                                p.images.emplace_back(j, match.trainIdx);
+                                break;
+                            }
                         }
                     }
                 }
             }
 
-            this->point_cloud.push_back(p);
+            if(p.images[p.images.size() - 1].second < 10000)
+                this->point_cloud.push_back(p);
 
         }
     }
@@ -347,6 +353,7 @@ int StructureFromMotion::nextImageToReconstruct(std::vector<size_t> &img_reconst
                 num_reconstructed_pts[proj.first]++;
                 reconstructed_pts[proj.first].push_back(i);
                 reconstructed_indices[proj.first].push_back(proj.second);
+
             }
         }
     }
@@ -360,7 +367,6 @@ int StructureFromMotion::nextImageToReconstruct(std::vector<size_t> &img_reconst
             index = i;
         }
     }
-
 
     if(num_reconstructed_pts[index] == 0)
         return -1;

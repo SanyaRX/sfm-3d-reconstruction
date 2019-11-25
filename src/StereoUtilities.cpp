@@ -110,15 +110,29 @@ void StereoUtilities::triangulatePoints(const cv::Matx34f &pleft, const cv::Matx
 }
 
 void StereoUtilities::removeOutlierMatches(const Features &left_image_features, const Features &right_im1age_features,
-                                           const Matches &matches, Matches &proved_matches)
+                                           const Matches &matches, const CameraParameters &camera_parameters,
+                                           Matches &proved_matches)
 {
     proved_matches.clear();
+
+    if(matches.size() < 8)
+    {
+        proved_matches = matches;
+        return;
+    }
+
     Features left_match_points, right_match_points;
     getMatchPoints(left_image_features, right_im1age_features, matches, left_match_points, right_match_points);
 
+    double focal = camera_parameters.k_matrix.at<double>(0, 0);
+    cv::Point2d pp(camera_parameters.k_matrix.at<double>(0, 2),
+            camera_parameters.k_matrix.at<double>(1, 2));
+
+    cv::Mat E, R, t;
     cv::Mat mask;
-    cv::Mat homography = cv::findHomography(left_match_points.points2D, right_match_points.points2D, cv::RANSAC,
-            10, mask);
+    E = findEssentialMat(left_match_points.points2D, right_match_points.points2D, focal, pp, cv::RANSAC, 0.999, 1.0, mask);
+
+    recoverPose(E, left_match_points.points2D, right_match_points.points2D, R, t, focal, pp, mask);
 
     for (size_t i = 0; i < mask.rows; i++)
     {

@@ -91,7 +91,7 @@ public:
      */
     static void removeOutlierMatches(const Features &left_image_features,
                                      const Features &right_im1age_features,
-                                     const Matches &matches,
+                                     const Matches &matches, const CameraParameters &camera_parameters,
                                      Matches &proved_matches);
 };
 

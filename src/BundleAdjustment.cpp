@@ -75,8 +75,9 @@ namespace BundleAdjustUtils {
             CameraParameters &camera_parameters,
             const std::vector<Features>& images_features) {
 
+
         std::call_once(initLoggingFlag, initLogging);
-        std::cout << camera_parameters.k_matrix << std::endl;
+
         // Create residuals for each observation in the bundle adjustment problem. The
         // parameters for cameras and points are added automatically.
         ceres::Problem problem;
@@ -118,6 +119,7 @@ namespace BundleAdjustUtils {
             for (const auto &kv : p.images) {
                 //kv.first  = camera index
                 //kv.second = 2d feature index
+                //std::cout << kv.second << std::endl;
                 cv::Point2d p2d = images_features[kv.first].points2D[kv.second];
 
                 //subtract center of projection, since the optimizer doesn't know what it is
@@ -160,7 +162,6 @@ namespace BundleAdjustUtils {
         //update optimized focal
         camera_parameters.k_matrix.at<double>(0, 0) = focal;
         camera_parameters.k_matrix.at<double>(1, 1) = focal;
-        std::cout << camera_parameters.k_matrix << std::endl;
         //Implement the optimized camera poses and 3D points back into the reconstruction
         for (size_t i = 0; i < cameraPoses.size(); i++) {
             cv::Matx34d &pose = cameraPoses[i];
