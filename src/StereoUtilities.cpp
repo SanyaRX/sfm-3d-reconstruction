@@ -30,8 +30,10 @@ void StereoUtilities::detectMatches(const cv::Mat &first_descriptors, const cv::
 }
 
 void StereoUtilities::getMatchPoints(const Features &left_key_features, const Features &right_key_features,
-                                     const Matches &matches,
-                                     Features &output_left_features, Features &output_right_features)
+                                     const Matches &matches,Features &output_left_features,
+                                     Features &output_right_features,
+                                     std::vector<int> &left_image_proj,
+                                     std::vector<int> &right_image_proj)
 {
     output_left_features.key_points.clear();
     output_right_features.key_points.clear();
@@ -47,6 +49,8 @@ void StereoUtilities::getMatchPoints(const Features &left_key_features, const Fe
         output_right_features.descriptor.push_back(right_key_features.descriptor.row(match.trainIdx));
         output_left_features.points2D.push_back(left_key_features.points2D[match.queryIdx]);
         output_right_features.points2D.push_back(right_key_features.points2D[match.trainIdx]);
+        left_image_proj.push_back(match.queryIdx);
+        right_image_proj.push_back(match.trainIdx);
     }
 }
 
@@ -76,29 +80,28 @@ void StereoUtilities::getProjectionMatrixFromRt(const cv::Mat &R, const cv::Mat 
                 R.at<double>(2,0), R.at<double>(2,1), R.at<double>(2,2), t.at<double>(2));
 }
 
-
-int StereoUtilities::isPointReconstructed(const std::vector<PointProjection> &reconstructed_points, int idx)
-{
-    if (reconstructed_points.empty())
-        return -1;
-
-    if (idx < 0)
-        return -1;
-
-    for (int i = 0; i < reconstructed_points.size(); i++)
-    {
-        if(idx == reconstructed_points[i].proj_idx)
-            return i;
-    }
-
-    return -1;
-}
-
-#include <iostream>
 void StereoUtilities::triangulatePoints(const cv::Matx34f &pleft, const cv::Matx34f &pright,
-                                        const Points2D &left_points, const Points2D &right_points,
-                                        const cv::Mat &camera_parameters, cv::Mat &output_points)
+                                        const std::pair<int, int> &image_pair,
+                                        const Features &left_features, const Features &right_features,
+                                        const Matches& matches,
+                                        const cv::Mat &camera_parameters, PointCloud &output_points)
 {
+    std::vector<int> leftBackReference;
+    std::vector<int> rightBackReference;
+    Features alignedLeft;
+    Features alignedRight;
+    getMatchPoints(
+            left_features,
+            right_features,
+            matches,
+            alignedLeft,
+            alignedRight,
+            leftBackReference,
+            rightBackReference);
+
+    Points2D left_points = alignedLeft.points2D;
+    Points2D right_points = alignedRight.points2D;
+
     Points2D undistort_left, undistort_right;
     cv::undistortPoints(left_points, undistort_left, camera_parameters, cv::Mat());
     cv::undistortPoints(right_points, undistort_right, camera_parameters, cv::Mat());
@@ -106,7 +109,38 @@ void StereoUtilities::triangulatePoints(const cv::Matx34f &pleft, const cv::Matx
     cv::Mat points_homogeneous;
     cv::triangulatePoints(pleft, pright, undistort_left, undistort_right, points_homogeneous);
 
-    cv::convertPointsFromHomogeneous(points_homogeneous.t(), output_points);
+    cv::Mat points3d;
+    cv::convertPointsFromHomogeneous(points_homogeneous.t(), points3d);
+
+    cv::Mat rvec_left;
+    Rodrigues(pleft.get_minor<3, 3>(0, 0), rvec_left);
+    cv::Mat tvec_left(pleft.get_minor<3, 1>(0, 3).t());
+
+    cv::Mat rvec_right;
+    Rodrigues(pright.get_minor<3, 3>(0, 0), rvec_right);
+    cv::Mat tvec_right(pright.get_minor<3, 1>(0, 3).t());
+
+    Points2D projectedOnLeft;
+    cv::projectPoints(points3d, rvec_left, tvec_left,  camera_parameters, cv::Mat(), projectedOnLeft);
+
+    Points2D projectedOnRight;
+    cv::projectPoints(points3d, rvec_right, tvec_right,  camera_parameters, cv::Mat(), projectedOnRight);
+
+    for (size_t i = 0; i < points3d.rows; i++)
+    {
+        if (norm(projectedOnLeft[i] - left_points[i]) < 10.0 &&
+            norm(projectedOnRight[i] - right_points[i]) < 10.0) {
+            Point3D p;
+            p.pt = cv::Point3d(points3d.at<double>(i, 0),
+                               points3d.at<double>(i, 1),
+                               points3d.at<double>(i, 2)
+            );
+            p.images[image_pair.first] = leftBackReference [i];
+            p.images[image_pair.second] = rightBackReference[i];
+
+            output_points.push_back(p);
+        }
+    }
 }
 
 void StereoUtilities::removeOutlierMatches(const Features &left_image_features, const Features &right_im1age_features,
@@ -122,7 +156,9 @@ void StereoUtilities::removeOutlierMatches(const Features &left_image_features, 
     }
 
     Features left_match_points, right_match_points;
-    getMatchPoints(left_image_features, right_im1age_features, matches, left_match_points, right_match_points);
+    std::vector<int> left_image_proj, right_image_proj;
+    getMatchPoints(left_image_features, right_im1age_features, matches, left_match_points, right_match_points,
+                   left_image_proj, right_image_proj);
 
     double focal = camera_parameters.k_matrix.at<double>(0, 0);
     cv::Point2d pp(camera_parameters.k_matrix.at<double>(0, 2),

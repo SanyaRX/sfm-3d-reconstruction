@@ -8,7 +8,7 @@
 #import "CommonUtilities.h"
 
 class StereoUtilities {
-    constexpr const static float THRES_RATIO = 0.8f;
+    constexpr const static float THRES_RATIO = 0.7f;
     constexpr const static unsigned int MAX_FEATURES = 8000;
 
 public:
@@ -38,12 +38,16 @@ public:
      * @param matches - key points matches
      * @param left_points - output array for matched features on the left image
      * @param right_points - output array for matched features on the right image
+     * @param left_image_proj - output array for matched feature indexes on the left image
+     * @param right_image_proj - output array for matched feature indexes on the right image
      */
     static void getMatchPoints(const Features &left_key_features,
                                const Features &right_key_features,
                                const Matches &matches,
                                Features &output_left_features,
-                               Features &output_right_features);
+                               Features &output_right_features,
+                               std::vector<int> &left_image_proj,
+                               std::vector<int> &right_image_proj);
 
     /**
      * Decreases 3x3 matrix's rank from 3 to 2
@@ -62,25 +66,19 @@ public:
     static void getProjectionMatrixFromRt(const cv::Mat &R, const cv::Mat &t, cv::Matx34f &output_matrix);
 
     /**
-     * Checks if key point on an image is already reconstructed
-     * @param reconstructed_points - reconstructed points seen on the image
-     * @param idx - index of a the key point on the image
-     * @return index of the reconstructed key point in point cloud or -1
-     */
-    static int isPointReconstructed(const std::vector<PointProjection> &reconstructed_points, int idx);
-
-    /**
      * Reconstructs 3D point cloud
      * @param pleft - left image projection matrix
      * @param pright - right image projection matrix
-     * @param left_points - left image match points
-     * @param right_points - right image key points
+     * @param image_pair - pair of images to process
+     * @param left_features - left image match points
+     * @param right_features - right image key points
+     * @param matches - images points matches
      * @param camera_parameters - camera parameters
      * @param output_points - output array of reconstructed 3D points
      */
-    static void triangulatePoints(const cv::Matx34f &pleft, const cv::Matx34f &pright,
-            const Points2D &left_points, const Points2D &right_points, const cv::Mat &camera_parameters,
-            cv::Mat &output_points);
+    static void triangulatePoints(const cv::Matx34f &pleft, const cv::Matx34f &pright, const std::pair<int, int> &image_pair,
+            const Features &left_features, const Features &right_features, const Matches& matches, const cv::Mat &camera_parameters,
+            PointCloud& output_points);
 
     /**
      * Removes outliers from matches using RANSAC-based robust method
