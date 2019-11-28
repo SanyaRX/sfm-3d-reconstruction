@@ -12,9 +12,8 @@
 #include <opencv2/calib3d/calib3d.hpp>
 #include "vector"
 #include <fstream>
-
+#include <map>
 typedef std::vector<cv::KeyPoint> KeyPoints;
-typedef std::vector<cv::Mat> Descriptors;
 typedef std::vector<cv::DMatch> Matches;
 typedef std::vector<cv::Point2d> Points2D;
 typedef std::vector<cv::Point3d> Points3D;
@@ -25,28 +24,29 @@ typedef struct FEATURES {
     cv::Mat descriptor;
 } Features;
 
-typedef struct IMAGE_MATCH {
-    Matches matches;
-    Points2D l_img_points;
-    Points2D  r_img_points;
-} ImageMatch;
+struct Image2D3DMatch {
+    Points2D points2D;
+    Points3D points3D;
+};
 
 typedef struct POINT3D{
-    cv::Point3f pt;
-    std::vector<std::pair<size_t, size_t>> images; // images that "see" the point
+    cv::Point3d pt;
+    std::map<size_t, size_t> images; // images that "see" the point
 } Point3D;
 
 typedef std::vector<Point3D> PointCloud;
 
-typedef struct POINT_PROJECTION {
-    cv::Point3f pt;
-    int proj_idx;
-} PointProjection;
 
 typedef struct CAMERA_PARAMETERS {
     cv::Mat k_matrix;
     cv::Mat distortion;
 } CameraParameters;
+
+struct ImagePair {
+    size_t left, right;
+};
+
+
 class CommonUtilities {
 
 public:
@@ -54,7 +54,7 @@ public:
      * Reads images from directory according to file containing list of image names
      * @param directory_path - path to directory with images
      * @param list_file_name - name of file with image names list
-     * @param resize_scale - float in interval (0, 1) defines resized image sizes. If out of (0, 1) then image won't be resized.
+     * @param resize_scale - double in interval (0, 1) defines resized image sizes. If out of (0, 1) then image won't be resized.
      * @return std::vector of images (as cv::Mat)
      */
     static std::vector<cv::Mat> loadImages(const std::string &directory_path,
