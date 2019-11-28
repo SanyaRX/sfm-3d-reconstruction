@@ -9,12 +9,12 @@
 
 class StereoUtilities {
     constexpr const static float THRES_RATIO = 0.7f;
-    constexpr const static unsigned int MAX_FEATURES = 8000;
+    constexpr const static unsigned int MAX_FEATURES = 10000;
 
 public:
 
     /**
-     * Detects image features
+     * Detects image features.
      * @param image - image to work with
      * @param output_features - image features for output
      */
@@ -22,7 +22,7 @@ public:
                                Features &output_features);
 
     /**
-     * Detects feature matches between two images
+     * Detects feature matches between two images.
      * @param first_descriptors - first image features descriptor
      * @param second_descriptors - second image features descriptor
      * @param output_matches - output vector for matches
@@ -50,7 +50,7 @@ public:
                                std::vector<int> &right_image_proj);
 
     /**
-     * Decreases 3x3 matrix's rank from 3 to 2
+     * Decreases 3x3 matrix's rank from 3 to 2.
      * @param matrix - matrix
      * @param output_matrix - output matrix with decreased rank
      * @return whether operation has been successful
@@ -66,7 +66,7 @@ public:
     static void getProjectionMatrixFromRt(const cv::Mat &R, const cv::Mat &t, cv::Matx34f &output_matrix);
 
     /**
-     * Reconstructs 3D point cloud
+     * Reconstructs 3D point cloud using points on two images.
      * @param pleft - left image projection matrix
      * @param pright - right image projection matrix
      * @param image_pair - pair of images to process
@@ -81,7 +81,7 @@ public:
             PointCloud& output_points);
 
     /**
-     * Removes outliers from matches using RANSAC-based robust method
+     * Removes outliers from matches using RANSAC-based robust method.
      * @param left_image_features - left image features
      * @param right_im1age_features - right image features
      * @param matches - image matches
