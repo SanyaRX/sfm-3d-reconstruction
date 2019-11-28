@@ -13,13 +13,11 @@ StructureFromMotion::StructureFromMotion(const std::vector<cv::Mat>& images) : i
             this->focal, 0, static_cast<double>(images[0].cols / 2),
             0, this->focal, static_cast<double>(images[0].rows / 2),
             0, 0, 1.0);
+    this->camera_parameters.distortion = cv::Mat_<double>::zeros(1, 4);
 }
 
 void StructureFromMotion::run()
 {
-
-    camera_parameters.distortion = cv::Mat_<double>::zeros(1, 4);
-
     detectImageFeatures();
 
     detectImageMatches();
@@ -146,7 +144,7 @@ bool StructureFromMotion::firstTwoViewsTriangulation()
     good_images.insert(left_idx);
     good_images.insert(right_idx);
 
-    savePointCloudXYZ("../results/points2views.xyz");
+    savePointCloudXYZ("../results/points2views");
     return true;
 }
 
@@ -363,7 +361,7 @@ StructureFromMotion::Images2D3DMatches StructureFromMotion::find2D3DMatches()
 }
 void StructureFromMotion::savePointCloudXYZ(std::string file_path)
 {
-    std::ofstream fout(file_path);
+    std::ofstream fout(file_path + ".xyz");
 
     for(const auto &point : point_cloud)
     {
