@@ -18,5 +18,13 @@ mkdir build
 cd build
 cmake ..
 make
-
+./sfm-3d-reconstruction _images_directory_path_ _ouput_file_name_
 ```
+### Note:
+Image directory must contain a list.txt. In list.txt file you need to list images names that you want to use in reconstruction.
+## Example
+To run example build project as mentioned before and run the following line:
+```
+./sfm_3d_reconstruction ../images/stone/ ../results/stone
+```
+To visualize results you can use MeshLab program. Just drag and drop result file to MeshLab window.
