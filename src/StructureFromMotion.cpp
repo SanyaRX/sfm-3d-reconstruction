@@ -182,7 +182,7 @@ bool StructureFromMotion::addNewViews()
         if (matches2D3D[best_image].points3D.size() < 6)
         {
             std::cerr << "Not enough points for solvePnP\n";
-            continue;
+            return false;
         }
         cv::solvePnPRansac(
                 matches2D3D[best_image].points3D,
