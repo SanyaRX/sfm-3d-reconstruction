@@ -62,7 +62,8 @@ bool StructureFromMotion::detectImageMatches()
 
             Matches proved_matches;
             StereoUtilities::removeOutlierMatches(images_features[i],
-                    images_features[j], matches, camera_parameters, proved_matches);
+                                                  images_features[j], matches,
+                                                  camera_parameters, proved_matches);
 
             match_matrix[i][j] = proved_matches;
 
@@ -178,7 +179,7 @@ bool StructureFromMotion::addNewViews()
 
         cv::Mat R, t;
         cv::Mat inliers;
-        if (matches2D3D[best_image].points3D.size() < 4)
+        if (matches2D3D[best_image].points3D.size() < 6)
         {
             std::cerr << "Not enough points for solvePnP\n";
             continue;

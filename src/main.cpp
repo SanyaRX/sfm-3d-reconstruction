@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
     }
     else if(images.size() == 1)
     {
-        std::cerr << "Required number of images is 2\n";
+        std::cerr << "Minimum required number of images is 2\n";
         return 0;
     }
 

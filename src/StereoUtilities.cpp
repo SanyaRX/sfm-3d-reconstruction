@@ -18,10 +18,13 @@ void StereoUtilities::detectFeatures(cv::Mat image, Features &output_features)
 void StereoUtilities::detectMatches(const cv::Mat &first_descriptors, const cv::Mat &second_descriptors,
         Matches &output_matches)
 {
-    cv::FlannBasedMatcher matcher(new cv::flann::LshIndexParams(20, 10, 2));
-    std::vector<Matches> knn_matches;
 
-    matcher.knnMatch(first_descriptors, second_descriptors, knn_matches, 2);
+    std::vector<Matches> knn_matches;
+    //cv::FlannBasedMatcher matcher(new cv::flann::LshIndexParams(20, 10, 2));
+    //matcher.knnMatch(first_descriptors, second_descriptors, knn_matches, 2);
+    auto matcher = cv::DescriptorMatcher::create("BruteForce-Hamming");
+    matcher->knnMatch(first_descriptors, second_descriptors, knn_matches, 2);
+
 
     for (Matches &knn_match : knn_matches) {
         if (knn_match[0].distance < THRES_RATIO * knn_match[1].distance)

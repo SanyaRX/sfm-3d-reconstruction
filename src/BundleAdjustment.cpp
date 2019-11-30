@@ -128,7 +128,7 @@ namespace BundleAdjustUtils {
         options.minimizer_progress_to_stdout = true;
         options.max_num_iterations = 500;
         options.eta = 1e-3;
-        options.max_solver_time_in_seconds = 25;
+        options.max_solver_time_in_seconds = 30 ;
         options.logging_type = ceres::LoggingType::SILENT;
         ceres::Solver::Summary summary;
         ceres::Solve(options, &problem, &summary);
@@ -136,7 +136,7 @@ namespace BundleAdjustUtils {
 
         if (not(summary.termination_type == ceres::CONVERGENCE)) {
             cerr << "Bundle adjustment failed." << endl;
-            return;
+            //return;
         }
 
 
