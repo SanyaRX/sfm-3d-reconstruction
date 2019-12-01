@@ -15,6 +15,7 @@ class StructureFromMotion {
     std::vector<cv::Mat> images;
     std::vector<Features> images_features;
     std::vector<std::vector<Matches>> match_matrix;
+    std::map<double, std::pair<size_t, size_t>> sorted_inliers_ratio;
     CameraParameters camera_parameters;
     std::vector<cv::Matx34d> pose_matrices;
 

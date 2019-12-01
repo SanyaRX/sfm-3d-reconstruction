@@ -80,6 +80,21 @@ public:
             const Features &left_features, const Features &right_features, const Matches& matches, const cv::Mat &camera_parameters,
             PointCloud& output_points);
 
+
+    /**
+     * Recover relative camera poses from matches
+     * @param camera_parameters - camera parameters
+     * @param matches - matches between two views
+     * @param features_left - left view features
+     * @param features_right - right view features
+     * @param pruned_matches - output proved matches
+     * @param pleft - output left camera matrix
+     * @param pright - output right camera matrix
+     * @return
+     */
+    static bool findCameraMatricesFromMatch(const CameraParameters& camera_parameters, const Matches& matches,
+            const Features& features_left, const Features& features_right,
+            Matches& pruned_matches, cv::Matx34f& pleft,cv::Matx34f& pright);
     /**
      * Removes outliers from matches using RANSAC-based robust method.
      * @param left_image_features - left image features
@@ -91,6 +106,14 @@ public:
                                      const Features &right_im1age_features,
                                      const Matches &matches, const CameraParameters &camera_parameters,
                                      Matches &proved_matches);
+    /**
+     * Returns number of homography inliers for two images.
+     * @param left - left image features
+     * @param right l right image features
+     * @param matches - images matches
+     * @return - number of homography inliers
+     */
+    static int findHomographyInliers(const Features& left, const Features& right, const Matches& matches);
 };
 
 

@@ -51,6 +51,7 @@ bool StructureFromMotion::detectImageMatches()
     std::cout << "Images matches detecting..." << std::endl;
 
     match_matrix.resize(images.size(), std::vector<Matches>(images.size()));
+
     for (size_t i = 0; i < images_features.size() - 1; i++)
     {
         for (size_t j = i + 1; j < images_features.size(); j++)
@@ -60,12 +61,20 @@ bool StructureFromMotion::detectImageMatches()
             StereoUtilities::detectMatches(images_features[i].descriptor,
                     images_features[j].descriptor, matches);
 
-            Matches proved_matches;
+            /*Matches proved_matches;
             StereoUtilities::removeOutlierMatches(images_features[i],
                                                   images_features[j], matches,
-                                                  camera_parameters, proved_matches);
+                                                  camera_parameters, proved_matches);*/
+            if(matches.size() < 100)
+                sorted_inliers_ratio[1.0] = {i, j};
+            else
+            {
+                double ratio = (double) StereoUtilities::findHomographyInliers(images_features[i], images_features[j],
+                                                                               matches) / (double) matches.size();
+                sorted_inliers_ratio[ratio] = {i, j};
 
-            match_matrix[i][j] = proved_matches;
+            }
+            match_matrix[i][j] = matches;
 
         }
     }
@@ -80,72 +89,57 @@ bool StructureFromMotion::firstTwoViewsTriangulation()
 
     std::cout << "Two views triangulation..." << std::endl;
 
-    size_t left_idx = 0, right_idx = 1;
-    for (size_t i = 0; i < match_matrix.size(); i++)
-    {
-        for(size_t j = i + 1; j < match_matrix.size(); j++)
-        {
-            if(match_matrix[i][j].size() > match_matrix[left_idx][right_idx].size())
-            {
-                left_idx = i;
-                right_idx = j;
-            }
-        }
+    for (const auto &pair : sorted_inliers_ratio) {
+        size_t left_idx = pair.second.first, right_idx = pair.second.second;
+
+        /*CommonUtilities::drawImageMatches(images[left_idx], images[right_idx], images_features[left_idx].key_points,
+                images_features[right_idx].key_points, match_matrix[left_idx][right_idx]);*/
+
+        cv::Matx34f pright, pleft;
+        Matches proved_matches;
+        StereoUtilities::findCameraMatricesFromMatch(camera_parameters,
+                                                     match_matrix[left_idx][right_idx],
+                                                     images_features[left_idx], images_features[right_idx],
+                                                     proved_matches, pleft, pright);
+
+        double inliers_ratio = (float)proved_matches.size() / (float)match_matrix[left_idx][right_idx].size();
+
+
+        if (inliers_ratio < 0.5)
+            continue;
+
+        match_matrix[left_idx][right_idx] = proved_matches;
+
+
+        this->pose_matrices.resize(images.size());
+        this->pose_matrices[left_idx] = pleft;
+        this->pose_matrices[right_idx] = pright;
+
+        cv::Mat points3d;
+
+        PointCloud pointCloud;
+        StereoUtilities::triangulatePoints(this->pose_matrices[left_idx], this->pose_matrices[right_idx],
+                                           std::make_pair(left_idx, right_idx), images_features[left_idx],
+                                           images_features[right_idx],
+                                           match_matrix[left_idx][right_idx], camera_parameters.k_matrix, pointCloud);
+
+
+        this->point_cloud = pointCloud;
+
+        std::cout << "Point cloud size: " << point_cloud.size() << std::endl;
+
+        BundleAdjustment::processBundleAdjustment(this->point_cloud, this->pose_matrices, this->camera_parameters,
+                                                  this->images_features);
+
+
+        processed_images.insert(left_idx);
+        processed_images.insert(right_idx);
+        good_images.insert(left_idx);
+        good_images.insert(right_idx);
+
+        savePointCloudXYZ("../results/points2views");
+        break;
     }
-
-    /*CommonUtilities::drawImageMatches(images[left_idx], images[right_idx], images_features[left_idx].key_points,
-            images_features[right_idx].key_points, match_matrix[left_idx][right_idx]);*/
-
-    Features left_features, right_features;
-    std::vector<int> left_image_proj, right_image_proj;
-    StereoUtilities::getMatchPoints(images_features[left_idx], images_features[right_idx],
-                                    match_matrix[left_idx][right_idx], left_features, right_features,
-                                    left_image_proj, right_image_proj);
-
-
-    cv::Point2d pp(camera_parameters.k_matrix.at<double>(0, 2),
-            camera_parameters.k_matrix.at<double>(1, 2));
-
-    cv::Mat mask;
-    cv::Mat essential_mat = cv::findEssentialMat(left_features.points2D, right_features.points2D,
-                                                 this->focal, pp, cv::RANSAC, 0.999, 1.0, mask);
-
-    cv::Mat R, t;
-
-    StereoUtilities::decreaseMatrixRank3x3(essential_mat, essential_mat);
-
-    cv::recoverPose(essential_mat, left_features.points2D, right_features.points2D,
-            R, t, this->focal, pp, mask);
-
-    cv::Matx34f pright;
-
-    StereoUtilities::getProjectionMatrixFromRt(R, t, pright);
-    this->pose_matrices.resize(images.size());
-    this->pose_matrices[left_idx] = cv::Matx34f::eye();
-    this->pose_matrices[right_idx] = pright;
-
-    cv::Mat points3d;
-
-    PointCloud pointCloud;
-    StereoUtilities::triangulatePoints( this->pose_matrices[left_idx], this->pose_matrices[right_idx],
-            std::make_pair(left_idx, right_idx), images_features[left_idx], images_features[right_idx],
-            match_matrix[left_idx][right_idx], camera_parameters.k_matrix, pointCloud);
-
-
-    this->point_cloud = pointCloud;
-
-    std::cout << "Point cloud size: " << point_cloud.size() << std::endl;
-
-    BundleAdjustment::processBundleAdjustment(this->point_cloud, this->pose_matrices, this->camera_parameters,
-                                              this->images_features);
-
-
-    processed_images.insert(left_idx);
-    processed_images.insert(right_idx);
-    good_images.insert(left_idx);
-    good_images.insert(right_idx);
-
-    savePointCloudXYZ("../results/points2views");
     return true;
 }
 
@@ -182,13 +176,13 @@ bool StructureFromMotion::addNewViews()
         if (matches2D3D[best_image].points3D.size() < 6)
         {
             std::cerr << "Not enough points for solvePnP\n";
-            return false;
+            continue;
         }
         cv::solvePnPRansac(
                 matches2D3D[best_image].points3D,
                 matches2D3D[best_image].points2D,
                 camera_parameters.k_matrix,
-                cv::Mat(),
+                camera_parameters.distortion,
                 R,
                 t,
                 false,
@@ -201,10 +195,10 @@ bool StructureFromMotion::addNewViews()
         std::cout << "Inliers ratio: " << inliers_ratio << std::endl;
         if(inliers_ratio < 0.5)
             continue;
-
-        cv::Rodrigues(R, R);
+        cv::Mat rotate_matrix;
+        cv::Rodrigues(R, rotate_matrix);
         cv::Matx34f pose;
-        StereoUtilities::getProjectionMatrixFromRt(R, t, pose);
+        StereoUtilities::getProjectionMatrixFromRt(rotate_matrix, t, pose);
 
         pose_matrices[best_image] = pose;
 
@@ -212,6 +206,16 @@ bool StructureFromMotion::addNewViews()
 
             size_t left_idx = (good_image < best_image) ? good_image : best_image;
             size_t right_idx = (good_image < best_image) ? best_image : good_image;
+            cv::Matx34f pright, pleft;
+            Matches proved_matches;
+            bool is_success = StereoUtilities::findCameraMatricesFromMatch(camera_parameters,
+                                                         match_matrix[left_idx][right_idx],
+                                                         images_features[left_idx],
+                                                         images_features[right_idx],
+                                                         proved_matches, pleft, pright);
+            if(!is_success)
+                continue;
+            match_matrix[left_idx][right_idx] = proved_matches;
 
             PointCloud cloud;
             StereoUtilities::triangulatePoints(
@@ -232,6 +236,7 @@ bool StructureFromMotion::addNewViews()
                                                   this->images_features);
 
         good_images.insert(best_image);
+        savePointCloudXYZ("../results/prom");
     }
     return true;
 }

@@ -134,9 +134,9 @@ namespace BundleAdjustUtils {
         ceres::Solve(options, &problem, &summary);
         std::cout << summary.BriefReport() << "\n";
 
-        if (not(summary.termination_type == ceres::CONVERGENCE)) {
+        if (summary.termination_type != ceres::CONVERGENCE) {
             cerr << "Bundle adjustment failed." << endl;
-            //return;
+            return;
         }
 
 

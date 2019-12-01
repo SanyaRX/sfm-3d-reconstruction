@@ -78,6 +78,8 @@ bool StereoUtilities::decreaseMatrixRank3x3(const cv::Mat &matrix, cv::Mat &outp
 
 void StereoUtilities::getProjectionMatrixFromRt(const cv::Mat &R, const cv::Mat &t, cv::Matx34f &output_matrix)
 {
+    /*R.copyTo(cv::Mat(3, 4, CV_64F, output_matrix.val)(cv::Rect(0, 0, 3, 3)));
+    t.copyTo(cv::Mat(3, 4, CV_64F, output_matrix.val)(cv::Rect(3, 0, 1, 3)));*/
     output_matrix = cv::Matx34f(R.at<double>(0,0), R.at<double>(0,1), R.at<double>(0,2), t.at<double>(0),
                 R.at<double>(1,0), R.at<double>(1,1), R.at<double>(1,2), t.at<double>(1),
                 R.at<double>(2,0), R.at<double>(2,1), R.at<double>(2,2), t.at<double>(2));
@@ -116,11 +118,11 @@ void StereoUtilities::triangulatePoints(const cv::Matx34f &pleft, const cv::Matx
     cv::convertPointsFromHomogeneous(points_homogeneous.t(), points3d);
 
     cv::Mat rvec_left;
-    Rodrigues(pleft.get_minor<3, 3>(0, 0), rvec_left);
+    cv::Rodrigues(pleft.get_minor<3, 3>(0, 0), rvec_left);
     cv::Mat tvec_left(pleft.get_minor<3, 1>(0, 3).t());
 
     cv::Mat rvec_right;
-    Rodrigues(pright.get_minor<3, 3>(0, 0), rvec_right);
+    cv::Rodrigues(pright.get_minor<3, 3>(0, 0), rvec_right);
     cv::Mat tvec_right(pright.get_minor<3, 1>(0, 3).t());
 
     Points2D projectedOnLeft;
@@ -169,7 +171,8 @@ void StereoUtilities::removeOutlierMatches(const Features &left_image_features, 
 
     cv::Mat E, R, t;
     cv::Mat mask;
-    E = findEssentialMat(left_match_points.points2D, right_match_points.points2D, focal, pp, cv::RANSAC, 0.999, 1.0, mask);
+    E = findEssentialMat(left_match_points.points2D, right_match_points.points2D, focal, pp, cv::RANSAC,
+            0.999, 1.0, mask);
 
     recoverPose(E, left_match_points.points2D, right_match_points.points2D, R, t, focal, pp, mask);
 
@@ -178,4 +181,65 @@ void StereoUtilities::removeOutlierMatches(const Features &left_image_features, 
         if((int)mask.at<uchar>(i, 0))
             proved_matches.push_back(matches[i]);
     }
+}
+
+#include <iostream>
+bool StereoUtilities::findCameraMatricesFromMatch(const CameraParameters& camera_parameters, const Matches& matches,
+        const Features& features_left, const Features& features_right,
+        Matches& pruned_matches, cv::Matx34f& pleft,cv::Matx34f& pright) {
+
+    if (matches.size() < 100)
+        return false;
+
+    double focal = camera_parameters.k_matrix.at<double>(0, 0);
+    cv::Point2d pp(camera_parameters.k_matrix.at<double>(0, 2), camera_parameters.k_matrix.at<double>(1, 2));
+
+    Features left_features;
+    Features right_features;
+    std::vector<int> left, right;
+    getMatchPoints(features_left, features_right, matches, left_features, right_features, left, right);
+
+
+    cv::Mat E, R, t;
+    cv::Mat mask;
+    E = findEssentialMat(left_features.points2D, right_features.points2D, focal, pp, cv::RANSAC,
+            0.999, 1.0, mask);
+
+
+    cv::recoverPose(E, left_features.points2D, right_features.points2D, R, t, focal, pp, mask);
+
+    pleft = cv::Matx34f::eye();
+    getProjectionMatrixFromRt(R, t, pright);
+
+    pruned_matches.clear();
+    for (size_t i = 0; i < mask.rows; i++) {
+        if (mask.at<uchar>(i)) {
+            pruned_matches.push_back(matches[i]);
+        }
+    }
+
+    return true;
+}
+int StereoUtilities::findHomographyInliers(
+        const Features& left,
+        const Features& right,
+        const Matches& matches) {
+
+    Features left_features;
+    Features right_features;
+    std::vector<int> left_image_proj, right_image_proj;
+    getMatchPoints(left, right, matches, left_features, right_features, left_image_proj, right_image_proj);
+
+    cv::Mat inlierMask;
+    cv::Mat homography;
+    if(matches.size() >= 4) {
+        homography = findHomography(left_features.points2D, right_features.points2D,
+                                    cv::RANSAC, 10, inlierMask);
+    }
+
+    if(matches.size() < 4 || homography.empty()) {
+        return 0;
+    }
+
+    return countNonZero(inlierMask);
 }
