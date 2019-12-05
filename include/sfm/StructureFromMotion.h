@@ -25,7 +25,7 @@ class StructureFromMotion {
 
     PointCloud point_cloud;
 
-    double focal = 1000;
+    double focal = 1500;
 
     typedef std::map<int, Image2D3DMatch> Images2D3DMatches;
     /**

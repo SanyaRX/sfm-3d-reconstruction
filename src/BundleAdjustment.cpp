@@ -12,9 +12,6 @@ using namespace std;
 
 namespace BundleAdjustUtils {
 
-/**
- * Use call_once to initialize Google logging only once.
- */
         void initLogging() {
             google::InitGoogleLogging("SFM");
         }

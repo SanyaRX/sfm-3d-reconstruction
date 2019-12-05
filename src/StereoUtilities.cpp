@@ -62,11 +62,11 @@ bool StereoUtilities::decreaseMatrixRank3x3(const cv::Mat &matrix, cv::Mat &outp
     if(matrix.cols != 3 || matrix.rows != 3)
         return false;
 
-    cv::Mat w(3, 3, CV_32F), u(3, 3, CV_32F), vt(3, 3, CV_32F);
+    cv::Mat w(3, 3, CV_64F), u(3, 3, CV_64F), vt(3, 3, CV_64F);
     cv::SVDecomp(matrix, w, u, vt);
 
     output_matrix.reshape(3, 3);
-    output_matrix.convertTo(output_matrix, CV_32F);
+    output_matrix.convertTo(output_matrix, CV_64F);
 
     w.row(0).setTo(1);
     w.row(1).setTo(1);
@@ -78,8 +78,6 @@ bool StereoUtilities::decreaseMatrixRank3x3(const cv::Mat &matrix, cv::Mat &outp
 
 void StereoUtilities::getProjectionMatrixFromRt(const cv::Mat &R, const cv::Mat &t, cv::Matx34f &output_matrix)
 {
-    /*R.copyTo(cv::Mat(3, 4, CV_64F, output_matrix.val)(cv::Rect(0, 0, 3, 3)));
-    t.copyTo(cv::Mat(3, 4, CV_64F, output_matrix.val)(cv::Rect(3, 0, 1, 3)));*/
     output_matrix = cv::Matx34f(R.at<double>(0,0), R.at<double>(0,1), R.at<double>(0,2), t.at<double>(0),
                 R.at<double>(1,0), R.at<double>(1,1), R.at<double>(1,2), t.at<double>(1),
                 R.at<double>(2,0), R.at<double>(2,1), R.at<double>(2,2), t.at<double>(2));
@@ -183,7 +181,6 @@ void StereoUtilities::removeOutlierMatches(const Features &left_image_features, 
     }
 }
 
-#include <iostream>
 bool StereoUtilities::findCameraMatricesFromMatch(const CameraParameters& camera_parameters, const Matches& matches,
         const Features& features_left, const Features& features_right,
         Matches& pruned_matches, cv::Matx34f& pleft,cv::Matx34f& pright) {

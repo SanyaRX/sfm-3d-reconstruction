@@ -61,18 +61,13 @@ bool StructureFromMotion::detectImageMatches()
             StereoUtilities::detectMatches(images_features[i].descriptor,
                     images_features[j].descriptor, matches);
 
-            /*Matches proved_matches;
-            StereoUtilities::removeOutlierMatches(images_features[i],
-                                                  images_features[j], matches,
-                                                  camera_parameters, proved_matches);*/
             if(matches.size() < 100)
                 sorted_inliers_ratio[1.0] = {i, j};
             else
             {
                 double ratio = (double) StereoUtilities::findHomographyInliers(images_features[i], images_features[j],
                                                                                matches) / (double) matches.size();
-                sorted_inliers_ratio[ratio] = {i, j};
-
+                sorted_inliers_ratio[1 - ratio] = {i, j};
             }
             match_matrix[i][j] = matches;
 
@@ -109,7 +104,6 @@ bool StructureFromMotion::firstTwoViewsTriangulation()
             continue;
 
         match_matrix[left_idx][right_idx] = proved_matches;
-
 
         this->pose_matrices.resize(images.size());
         this->pose_matrices[left_idx] = pleft;
@@ -178,6 +172,7 @@ bool StructureFromMotion::addNewViews()
             std::cerr << "Not enough points for solvePnP\n";
             continue;
         }
+
         cv::solvePnPRansac(
                 matches2D3D[best_image].points3D,
                 matches2D3D[best_image].points2D,
@@ -201,12 +196,13 @@ bool StructureFromMotion::addNewViews()
         StereoUtilities::getProjectionMatrixFromRt(rotate_matrix, t, pose);
 
         pose_matrices[best_image] = pose;
-
+        bool success_push = false;
         for (const int good_image : good_images) {
 
             size_t left_idx = (good_image < best_image) ? good_image : best_image;
             size_t right_idx = (good_image < best_image) ? best_image : good_image;
-            cv::Matx34f pright, pleft;
+
+            cv::Matx34f pright = cv::Matx34f::eye(), pleft = cv::Matx34f::eye();
             Matches proved_matches;
             bool is_success = StereoUtilities::findCameraMatricesFromMatch(camera_parameters,
                                                          match_matrix[left_idx][right_idx],
@@ -231,8 +227,11 @@ bool StructureFromMotion::addNewViews()
 
 
             addPointsToPointCloud(cloud);
+            success_push = true;
+
         }
-        BundleAdjustment::processBundleAdjustment(this->point_cloud, this->pose_matrices, this->camera_parameters,
+        if (success_push)
+            BundleAdjustment::processBundleAdjustment(this->point_cloud, this->pose_matrices, this->camera_parameters,
                                                   this->images_features);
 
         good_images.insert(best_image);
@@ -271,8 +270,8 @@ void StructureFromMotion::addPointsToPointCloud(const PointCloud &cloud)
                         for (const cv::DMatch& match : matching)
                         {
                             if (match.queryIdx == left_feature_idx
-                                    and match.trainIdx == right_feature_idx
-                                    and match.distance < 10.0)
+                                    && match.trainIdx == right_feature_idx
+                                    && match.distance < 10.0)
                             {
 
                                 found_matching_feature = true;
